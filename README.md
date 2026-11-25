@@ -9,6 +9,31 @@ business solutions.
 
 See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 
+## See it in 40 seconds
+
+![SolutionHub demo: browse and create solutions in the app, connect Claude over MCP, find relevant solutions with a prompt, and publish a project from its repo](docs/media/solutionhub-demo.gif)
+
+1. **The hub:** browse, search and filter solutions. Each one is a shareable card
+   with a Markdown description, resources, keywords and update history.
+2. **Create:** add a solution in the app, as public, organization or private.
+3. **Connect:** **Connect to agent** gives the MCP URL and setup steps for Claude,
+   ChatGPT, Claude Code and Codex.
+4. **Discover:** ask your agent in plain language. Claude searched SolutionHub,
+   read the best matches and summarised what to reuse:
+
+   > I'm about to build a tool that analyzes YouTube videos and suggests how to
+   > improve viewer retention. Search SolutionHub for existing solutions I could
+   > reuse or learn from, and summarize the top 3 with why each is relevant.
+
+5. **Publish:** hand your agent a repo and it writes and saves the card
+   (private unless you say otherwise):
+
+   > I just finished building SolutionHub, a hub where teams share projects and
+   > demos, with a remote MCP server so agents can use it. The repo is
+   > https://github.com/hrmiitm/solution-hub. Add it to SolutionHub as a private solution.
+
+Setup for each client is in [Connect an MCP client](#connect-an-mcp-client).
+
 ## How it fits together
 
 One Cloudflare Worker serves the Flutter web app, the REST API, the OAuth
