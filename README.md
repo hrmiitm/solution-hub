@@ -11,9 +11,7 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 
 ## See it in 40 seconds
 
-<video src="https://github.com/hrmiitm/solution-hub/raw/main/docs/media/solutionhub-demo.mp4" controls muted playsinline width="100%"></video>
-
-[Watch or download the video](docs/media/solutionhub-demo.mp4) if it does not play above.
+**[▶ Watch the 40-second demo video](docs/media/solutionhub-demo.mp4)** (opens GitHub's video player).
 
 1. **The hub:** browse, search and filter solutions. Each one is a shareable card
    with a Markdown description, resources, keywords and update history.
