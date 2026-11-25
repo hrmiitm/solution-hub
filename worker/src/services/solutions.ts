@@ -41,9 +41,16 @@ interface SolutionRow {
   owner_org_domain: string | null;
   owner_name: string;
   owner_avatar_url: string | null;
+  like_count: number;
+  liked_by_me: number;
 }
 
-export interface Solution {
+interface SolutionLikes {
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface Solution extends SolutionLikes {
   id: string;
   slug: string;
   path: string;
@@ -82,10 +89,18 @@ export interface SolutionUpdate {
   author: PublicUser;
 }
 
-const SELECT_SOLUTION = `
-  SELECT s.*, u.username AS owner_username, u.name AS owner_name, u.avatar_url AS owner_avatar_url,
-         u.org_domain AS owner_org_domain
-  FROM solutions s JOIN users u ON u.id = s.owner_id`;
+const SOLUTION_COLUMNS = `s.*, u.username AS owner_username, u.name AS owner_name, u.avatar_url AS owner_avatar_url,
+         u.org_domain AS owner_org_domain`;
+const SOLUTION_FROM = `FROM solutions s JOIN users u ON u.id = s.owner_id`;
+
+function likeColumns(userId: string): string {
+  return `(SELECT COUNT(*) FROM solution_likes WHERE solution_id = s.id) AS like_count,
+          EXISTS (SELECT 1 FROM solution_likes WHERE solution_id = s.id AND user_id = ${userId}) AS liked_by_me`;
+}
+
+function toSolutionLikes(row: Pick<SolutionRow, 'like_count' | 'liked_by_me'>): SolutionLikes {
+  return { likeCount: row.like_count, likedByMe: row.liked_by_me === 1 };
+}
 
 function toSolution(row: SolutionRow, viewer: Viewer, includeDescription: boolean): Solution {
   const s: Solution = {
@@ -113,18 +128,20 @@ function toSolution(row: SolutionRow, viewer: Viewer, includeDescription: boolea
     completedAt: row.completed_at,
     owner: toPublicUser({ username: row.owner_username, name: row.owner_name, avatar_url: row.owner_avatar_url }),
     isOwner: canModify(viewer, row),
+    ...toSolutionLikes(row),
   };
   if (includeDescription) s.descriptionMd = row.description_md;
   return s;
 }
 
 
-async function loadRow(db: D1Database, id: string): Promise<SolutionRow | null> {
-  return db.prepare(`${SELECT_SOLUTION} WHERE s.id = ?1`).bind(id).first<SolutionRow>();
+async function loadRow(db: D1Database, viewer: Viewer, id: string): Promise<SolutionRow | null> {
+  return db.prepare(`SELECT ${SOLUTION_COLUMNS}, ${likeColumns('?2')} ${SOLUTION_FROM} WHERE s.id = ?1`)
+    .bind(id, viewer?.userId ?? null).first<SolutionRow>();
 }
 
 async function loadReadable(db: D1Database, viewer: Viewer, id: string): Promise<SolutionRow> {
-  const row = await loadRow(db, id);
+  const row = await loadRow(db, viewer, id);
   // Invisible solutions are reported as missing so their existence is not revealed.
   if (!row || !canView(viewer, row)) throw notFound('Solution');
   return row;
@@ -132,7 +149,7 @@ async function loadReadable(db: D1Database, viewer: Viewer, id: string): Promise
 
 async function loadOwned(db: D1Database, viewer: Viewer, id: string): Promise<{ row: SolutionRow; actor: Actor }> {
   const actor = requireSignedIn(viewer);
-  const row = await loadRow(db, id);
+  const row = await loadRow(db, actor, id);
   if (!row || !canView(actor, row)) throw notFound('Solution');
   if (!canModify(actor, row)) throw new AppError('forbidden', 'Only the owner can modify this solution');
   return { row, actor };
@@ -144,8 +161,8 @@ export async function getSolution(db: D1Database, viewer: Viewer, id: string): P
 
 export async function getSolutionByPath(db: D1Database, viewer: Viewer, username: string, slug: string): Promise<Solution> {
   const row = await db
-    .prepare(`${SELECT_SOLUTION} WHERE u.username = ?1 AND s.slug = ?2`)
-    .bind(username.toLowerCase(), slug.toLowerCase())
+    .prepare(`SELECT ${SOLUTION_COLUMNS}, ${likeColumns('?3')} ${SOLUTION_FROM} WHERE u.username = ?1 AND s.slug = ?2`)
+    .bind(username.toLowerCase(), slug.toLowerCase(), viewer?.userId ?? null)
     .first<SolutionRow>();
   if (!row || !canView(viewer, row)) throw notFound('Solution');
   return toSolution(row, viewer, true);
@@ -154,6 +171,25 @@ export async function getSolutionByPath(db: D1Database, viewer: Viewer, username
 /** Resolves an id or username/slug reference, with the same visibility rules as above. */
 export async function resolveSolution(db: D1Database, viewer: Viewer, ref: SolutionRef): Promise<Solution> {
   return 'id' in ref ? getSolution(db, viewer, ref.id) : getSolutionByPath(db, viewer, ref.username, ref.slug);
+}
+
+export async function setSolutionLike(db: D1Database, viewer: Viewer, id: string, liked: boolean): Promise<SolutionLikes> {
+  const actor = requireSignedIn(viewer);
+  const binds: unknown[] = [id, actor.userId];
+  const visible = visibleSql(actor, (value) => `?${binds.push(value)}`);
+  const from = `${SOLUTION_FROM} WHERE s.id = ?1 AND ${visible}`;
+  // Check visibility in the mutation and return the resulting count in the same batch.
+  const mutation = liked
+    ? `INSERT INTO solution_likes (solution_id, user_id) SELECT s.id, ?2 ${from}
+       ON CONFLICT (solution_id, user_id) DO NOTHING`
+    : `DELETE FROM solution_likes WHERE user_id = ?2 AND solution_id IN (SELECT s.id ${from})`;
+  const [, result] = await db.batch<Pick<SolutionRow, 'like_count' | 'liked_by_me'>>([
+    db.prepare(mutation).bind(...binds),
+    db.prepare(`SELECT ${likeColumns('?2')} ${from}`).bind(...binds),
+  ]);
+  const row = result?.results[0];
+  if (!row) throw notFound('Solution');
+  return toSolutionLikes(row);
 }
 
 async function uniqueSlug(db: D1Database, ownerId: string, title: string): Promise<string> {
@@ -406,7 +442,7 @@ const SEARCH_FIELDS: { expr: string; weight: number }[] = [
  * All values are bound parameters; numbered placeholders (?N) let each search
  * term be bound once yet referenced by several expressions.
  */
-export async function searchSolutions(db: D1Database, viewer: Viewer, params: SearchParams): Promise<SearchResult> {
+export async function searchSolutions(db: D1Database, viewer: Viewer, params: SearchParams, likedOnly = false): Promise<SearchResult> {
   const binds: unknown[] = [];
   const bind = (v: unknown) => {
     binds.push(v);
@@ -414,6 +450,10 @@ export async function searchSolutions(db: D1Database, viewer: Viewer, params: Se
   };
 
   const where: string[] = [visibleSql(viewer, bind)];
+  if (likedOnly) {
+    const actor = requireSignedIn(viewer);
+    where.push(`s.id IN (SELECT solution_id FROM solution_likes WHERE user_id = ${bind(actor.userId)})`);
+  }
   if (params.visibility?.length) where.push(`s.visibility IN (SELECT value FROM json_each(${bind(JSON.stringify(params.visibility))}))`);
   if (params.status) where.push(`s.status = ${bind(params.status)}`);
   if (params.owner) where.push(`u.username = ${bind(params.owner.toLowerCase())}`);
@@ -450,22 +490,22 @@ export async function searchSolutions(db: D1Database, viewer: Viewer, params: Se
   const order = {
     relevance: `score DESC, s.updated_at DESC`,
     updated: `s.updated_at DESC`,
-    created: `s.created_at DESC`,
+    created: `s.created_at DESC, like_count DESC`,
     oldest: `s.created_at ASC`,
   }[sort];
 
   const limit = Math.min(Math.max(params.limit ?? 24, 1), 50);
   const page = Math.min(Math.max(params.page ?? 1, 1), 1000);
   const whereSql = where.join(' AND ');
-  const from = `FROM solutions s JOIN users u ON u.id = s.owner_id WHERE ${whereSql}`;
+  const from = `${SOLUTION_FROM} WHERE ${whereSql}`;
+  const likes = likeColumns(viewer ? bind(viewer.userId) : 'NULL');
 
   const [countRes, rowsRes] = await db.batch([
     // The count query references only the WHERE parameters.
     db.prepare(`SELECT COUNT(*) AS total ${from}`).bind(...binds.slice(0, whereBindCount)),
     db
       .prepare(
-        `SELECT s.*, u.username AS owner_username, u.name AS owner_name, u.avatar_url AS owner_avatar_url,
-                u.org_domain AS owner_org_domain, ${score} AS score
+        `SELECT ${SOLUTION_COLUMNS}, ${likes}, ${score} AS score
          ${from} ORDER BY ${order}, s.id LIMIT ${limit} OFFSET ${(page - 1) * limit}`,
       )
       .bind(...binds),

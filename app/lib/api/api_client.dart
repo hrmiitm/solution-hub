@@ -39,6 +39,9 @@ class ApiClient {
   final String baseUrl;
   final TokenStore tokenStore;
   final http.Client _http;
+  final _likesChanged = ValueNotifier(0);
+
+  Listenable get likesChanged => _likesChanged;
 
   /// Called when the backend reports the session is missing or expired.
   VoidCallback? onUnauthorized;
@@ -189,6 +192,28 @@ class ApiClient {
   );
 
   // --- solutions ---
+
+  Future<SolutionPage> likedSolutions(SolutionQuery query) async =>
+      SolutionPage.fromJson(
+        await _send(
+          'GET',
+          '/api/me/liked-solutions',
+          query: query.toQueryParameters(),
+        ) as Map<String, dynamic>,
+      );
+
+  Future<SolutionLikes> setSolutionLike(
+    String id, {
+    required bool liked,
+  }) async {
+    final response = await _send(
+      liked ? 'PUT' : 'DELETE',
+      '/api/solutions/${Uri.encodeComponent(id)}/like',
+    ) as Map<String, dynamic>;
+    final likes = SolutionLikes.fromJson(response);
+    _likesChanged.value++;
+    return likes;
+  }
 
   Future<SolutionPage> solutions(SolutionQuery query) async =>
       SolutionPage.fromJson(

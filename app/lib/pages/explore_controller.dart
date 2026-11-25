@@ -134,8 +134,12 @@ class ExploreController extends ChangeNotifier {
 
   void setSearch(String q) {
     if (q.trim() == query.q.trim()) return;
-    // With no explicit sort, the API orders searches by best match.
-    _apply(query.copyWith(q: q, clearSort: query.sort == 'relevance'));
+    _apply(
+      query.copyWith(
+        q: q,
+        clearSort: q.trim().isEmpty && query.sort == 'relevance',
+      ),
+    );
   }
 
   void setSort(String? sort) =>

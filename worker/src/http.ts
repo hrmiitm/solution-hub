@@ -118,7 +118,7 @@ export function corsHeaders(request: Request, env: Env): Record<string, string> 
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-credentials': 'true',
-    'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'access-control-allow-headers': `content-type, authorization, ${CSRF_HEADER}`,
     'access-control-max-age': '600',
     vary: 'Origin',

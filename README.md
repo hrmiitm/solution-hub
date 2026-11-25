@@ -25,6 +25,8 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
   (Workspace accounts) or Private (personal accounts); the API defaults to
   Private.
 - Profiles with ongoing/completed counts, counting only what the viewer can see.
+- Signed-in users can like solutions and revisit them in their private **Liked
+  solutions** profile tab. Anyone who can view a solution can see its like count.
 - Create/edit/delete solutions with a Markdown description, keywords
   (suggested automatically from the text, fully editable), multiple named
   resource links, a thumbnail, client, type, industry, function, category and
@@ -37,10 +39,11 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
   completion and progress updates appear in Update history. When you save
   edits, change visibility or complete a solution in the app, enter a note
   explaining why. Reopening changes the status without adding a history entry.
-- Explore: keyword search (case-insensitive, multi-term, partial,
-  relevance-ranked), filters (status and type by default; category,
+- Explore: keyword search (case-insensitive, multi-term, partial), filters
+  (status and type by default; category,
   technology, industry and function can be added via "Customize filters"),
-  sorting and pagination.
+  and pagination. Results show the newest creations first, with like count
+  breaking timestamp ties. **Best match** is available when searching.
 - Remote MCP for authenticated discovery and publishing. **Connect to agent**
   shows the connection URL, setup for each client and your connected apps.
 - The appearance menu offers System, Light and Dark. SolutionHub remembers

@@ -289,7 +289,7 @@ describe('search, filters, sorting and pagination', () => {
   });
 
   test('ranks title matches above description/client matches', async () => {
-    const r = await api(bob, 'GET', `/api/solutions?q=${encodeURIComponent(`  INVOICE   ${tag} `)}`);
+    const r = await api(bob, 'GET', `/api/solutions?sort=relevance&q=${encodeURIComponent(`  INVOICE   ${tag} `)}`);
     assert.equal(r.status, 200);
     assert.equal(r.body.total, 3);
     assert.equal(r.body.items[0].id, ids[0]);
@@ -351,6 +351,100 @@ describe('search, filters, sorting and pagination', () => {
 
   test('cleanup', async () => {
     for (const sid of ids) assert.equal((await api(alice, 'DELETE', `/api/solutions/${sid}`)).status, 204);
+  });
+});
+
+describe('solution likes', () => {
+  const likedList = '/api/me/liked-solutions';
+  const likePath = (id: string) => `/api/solutions/${id}/like`;
+  const fixtures: string[] = [];
+
+  async function create(title: string, visibility = 'public') {
+    const res = await api(alice, 'POST', '/api/solutions', sample({ title, visibility }));
+    assert.equal(res.status, 201);
+    fixtures.push(res.body.id);
+    return res.body as { id: string; slug: string; updatedAt: string };
+  }
+
+  after(async () => {
+    for (const id of fixtures) await api(alice, 'DELETE', `/api/solutions/${id}`);
+  });
+
+  test('likes are unique, visible as counts, and saved only to the acting account', async () => {
+    const solution = await create(`Like ${run}`);
+    const path = likePath(solution.id);
+    const cookie = `${BASE.startsWith('https:') ? '__Host-sh_session' : 'sh_session'}=${bob.token}`;
+    assert.equal((await api(null, 'PUT', path)).status, 401);
+    assert.equal((await api(null, 'GET', likedList)).status, 401);
+    assert.equal((await api(null, 'PUT', path, undefined, { cookie, origin: BASE })).status, 403);
+
+    const [one, two] = await Promise.all([
+      api(null, 'PUT', path, undefined, { cookie, origin: BASE, 'x-solutionhub-csrf': '1' }),
+      api(bob, 'PUT', path),
+    ]);
+    for (const res of [one, two]) {
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body, { likeCount: 1, likedByMe: true });
+    }
+    assert.deepEqual((await api(carol, 'PUT', path)).body, { likeCount: 2, likedByMe: true });
+
+    const publicDetail = await api(null, 'GET', `/api/users/${alice.username}/solutions/${solution.slug}`);
+    assert.equal(publicDetail.body.likeCount, 2);
+    assert.equal(publicDetail.body.likedByMe, false);
+    assert.equal(publicDetail.body.updatedAt, solution.updatedAt);
+    assert.equal((await api(dave, 'GET', likedList)).body.total, 0);
+    assert.equal((await api(dave, 'GET', `/api/users/${bob.username}/liked-solutions`)).status, 404);
+    const saved = await api(bob, 'GET', likedList);
+    assert.equal(saved.body.total, 1);
+    assert.equal(saved.body.items[0].id, solution.id);
+    assert.equal(saved.body.items[0].likedByMe, true);
+
+    for (const moment of ['first', 'retry']) {
+      assert.deepEqual((await api(bob, 'DELETE', path)).body, { likeCount: 1, likedByMe: false }, moment);
+    }
+    assert.equal((await api(bob, 'GET', likedList)).body.total, 0);
+    assert.equal((await api(carol, 'GET', likedList)).body.total, 1);
+    assert.equal((await api(alice, 'DELETE', `/api/solutions/${solution.id}`)).status, 204);
+    assert.equal((await api(carol, 'GET', likedList)).body.total, 0);
+  });
+
+  test('like changes and saved lists respect current solution visibility', async () => {
+    const org = await create(`Like organization ${run}`, 'organization');
+    const owned = await create(`Like private ${run}`, 'private');
+    for (const [viewer, id] of [[dave, org.id], [carol, owned.id]] as const) {
+      assert.equal((await api(viewer, 'PUT', likePath(id))).status, 404);
+      assert.equal((await api(viewer, 'DELETE', likePath(id))).status, 404);
+    }
+    assert.equal((await api(alice, 'PUT', likePath(owned.id))).status, 200);
+    assert.equal((await api(carol, 'PUT', likePath(org.id))).status, 200);
+    assert.equal((await api(carol, 'GET', likedList)).body.items[0].id, org.id);
+    assert.equal((await api(alice, 'PATCH', `/api/solutions/${org.id}`, { visibility: 'private' })).status, 200);
+    assert.equal((await api(carol, 'GET', likedList)).body.total, 0);
+    assert.equal((await api(carol, 'DELETE', likePath(org.id))).status, 404);
+  });
+
+  test('default order uses creation date, then likes, before applying pagination', async () => {
+    const marker = `likeorder${run}`;
+    const newer = await create(`Newer ${marker}`);
+    const tied = await create(`Tied ${marker}`);
+    const older = await create(`Older ${marker}`);
+    d1(`UPDATE solutions SET created_at = '2020-01-02T00:00:00.000Z' WHERE id IN ('${newer.id}', '${tied.id}');
+        UPDATE solutions SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = '${older.id}';`);
+    assert.equal((await api(bob, 'PUT', likePath(tied.id))).status, 200);
+    assert.equal((await api(bob, 'PUT', likePath(older.id))).status, 200);
+    assert.equal((await api(carol, 'PUT', likePath(older.id))).status, 200);
+
+    const list = `/api/solutions?q=${marker}&limit=1`;
+    for (const [i, solution] of [tied, newer, older].entries()) {
+      const res = await api(null, 'GET', `${list}&page=${i + 1}`);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.total, 3);
+      assert.equal(res.body.items[0].id, solution.id);
+      assert.equal(res.body.items[0].likeCount, [1, 0, 2][i]);
+    }
+    const saved = await api(bob, 'GET', `${likedList}?limit=1&page=2`);
+    assert.equal(saved.body.total, 2);
+    assert.equal(saved.body.items[0].id, older.id);
   });
 });
 

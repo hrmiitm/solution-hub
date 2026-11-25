@@ -30,16 +30,16 @@ interface Ctx {
 }
 
 type Handler = (ctx: Ctx) => Promise<Response>;
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /**
  * auth: 'required' (default) needs a session; 'optional' also serves anonymous
  * visitors (services then only expose public data); 'none' skips session lookup.
  */
 type AuthMode = 'required' | 'optional' | 'none';
-const routes: { method: Method; pattern: RegExp; keys: string[]; handler: Handler; auth: AuthMode }[] = [];
+const routes: { method: Method; pattern: RegExp; keys: string[]; handler: Handler; auth: AuthMode; sameOrigin?: boolean }[] = [];
 
-function route(method: Method, path: string, handler: Handler, opts: { auth?: AuthMode } = {}) {
+function route(method: Method, path: string, handler: Handler, opts: { auth?: AuthMode; sameOrigin?: boolean } = {}) {
   const keys: string[] = [];
   const pattern = new RegExp(
     `^${path.replace(/:([a-zA-Z]+)/g, (_, k: string) => {
@@ -47,7 +47,7 @@ function route(method: Method, path: string, handler: Handler, opts: { auth?: Au
       return '([^/]+)';
     })}$`,
   );
-  routes.push({ method, pattern, keys, handler, auth: opts.auth ?? 'required' });
+  routes.push({ method, pattern, keys, handler, auth: opts.auth ?? 'required', sameOrigin: opts.sameOrigin });
 }
 
 const clientIp = (request: Request) => request.headers.get('cf-connecting-ip') ?? 'local';
@@ -103,6 +103,10 @@ route('GET', '/api/me', async ({ env, actor }) => {
   if (!user) throw new AppError('unauthorized', 'Not signed in');
   return json({ user: meBody(user) });
 });
+
+route('GET', '/api/me/liked-solutions', async ({ env, actor, url }) =>
+  json(await solutions.searchSolutions(env.DB, actor(), searchParams(url), true)),
+);
 
 // --- MCP connector consent and management -----------------------------------
 
@@ -180,6 +184,14 @@ route('DELETE', '/api/solutions/:id', async ({ env, actor, params }) => {
   return new Response(null, { status: 204 });
 });
 
+route('PUT', '/api/solutions/:id/like', async ({ env, actor, params }) =>
+  json(await solutions.setSolutionLike(env.DB, actor(), params.id!, true)), { sameOrigin: true },
+);
+
+route('DELETE', '/api/solutions/:id/like', async ({ env, actor, params }) =>
+  json(await solutions.setSolutionLike(env.DB, actor(), params.id!, false)), { sameOrigin: true },
+);
+
 route(
   'GET',
   '/api/solutions/:id/updates',
@@ -229,7 +241,7 @@ function searchParams(url: URL): solutions.SearchParams {
     function: listParam(url, 'function'),
     category: listParam(url, 'category'),
     technology: listParam(url, 'technology'),
-    sort: ['relevance', 'updated', 'created', 'oldest'].includes(sort ?? '') ? (sort as solutions.SearchParams['sort']) : undefined,
+    sort: ['relevance', 'updated', 'created', 'oldest'].includes(sort ?? '') ? (sort as solutions.SearchParams['sort']) : 'created',
     page: Number.parseInt(q.get('page') ?? '1', 10) || 1,
     limit: Number.parseInt(q.get('limit') ?? '24', 10) || 24,
   };
@@ -275,7 +287,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     actor = auth.actor;
     if (!actor && match.auth === 'required') throw new AppError('unauthorized', 'Sign in required');
     if (actor && request.method !== 'GET') {
-      if (auth.viaCookie && url.pathname.startsWith('/api/mcp/') && request.headers.get('origin') !== url.origin) {
+      if (auth.viaCookie && (match.sameOrigin || url.pathname.startsWith('/api/mcp/')) && request.headers.get('origin') !== url.origin) {
         throw new AppError('forbidden', 'Cross-origin request rejected');
       }
       if (auth.viaCookie) assertCsrfSafe(request, env);

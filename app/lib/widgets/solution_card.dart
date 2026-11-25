@@ -5,11 +5,18 @@ import '../api/models.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import 'common.dart';
+import 'solution_like_button.dart';
 
 class SolutionCard extends StatelessWidget {
-  const SolutionCard(this.solution, {super.key, this.compact = false});
+  const SolutionCard(
+    this.solution, {
+    super.key,
+    this.compact = false,
+    this.showUpdated = false,
+  });
   final Solution solution;
   final bool compact;
+  final bool showUpdated;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +96,7 @@ class SolutionCard extends StatelessWidget {
             ),
             const Divider(),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
                   Flexible(
@@ -117,8 +124,16 @@ class SolutionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Updated ${relativeDate(s.updatedAt)}',
+                    showUpdated
+                        ? 'Updated ${relativeDate(s.updatedAt)}'
+                        : 'Created ${relativeDate(s.createdAt)}',
                     style: TextStyle(fontSize: 11, color: context.colors.muted),
+                  ),
+                  const SizedBox(width: 4),
+                  SolutionLikeButton(
+                    key: ValueKey(s.id),
+                    solution: s,
+                    compact: true,
                   ),
                 ],
               ),
@@ -132,8 +147,13 @@ class SolutionCard extends StatelessWidget {
 
 /// Responsive grid with equal-height cards per row.
 class SolutionGrid extends StatelessWidget {
-  const SolutionGrid({super.key, required this.items});
+  const SolutionGrid({
+    super.key,
+    required this.items,
+    this.showUpdated = false,
+  });
   final List<Solution> items;
+  final bool showUpdated;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +184,7 @@ class SolutionGrid extends StatelessWidget {
                                 child: SolutionCard(
                                   rowItems[j],
                                   compact: compact,
+                                  showUpdated: showUpdated,
                                 ),
                               )
                             : const SizedBox.shrink(),

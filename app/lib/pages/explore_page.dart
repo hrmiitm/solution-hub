@@ -28,12 +28,16 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   void initState() {
     super.initState();
+    c.api.likesChanged.addListener(c.refresh);
     // Refresh on every visit so newly created/edited solutions appear.
-    WidgetsBinding.instance.addPostFrameCallback((_) => c.refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) c.refresh();
+    });
   }
 
   @override
   void dispose() {
+    c.api.likesChanged.removeListener(c.refresh);
     _debounce?.cancel();
     _search.dispose();
     super.dispose();
@@ -99,12 +103,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _toolbar(bool compact) {
     final sortItems = <String?, String>{
-      if (c.query.q.trim().isNotEmpty)
-        null: 'Best match'
-      else
-        null: 'Recently updated',
-      if (c.query.q.trim().isNotEmpty) 'updated': 'Recently updated',
-      'created': 'Recently created',
+      null: 'Recently created',
+      if (c.query.q.trim().isNotEmpty) 'relevance': 'Best match',
+      'updated': 'Recently updated',
       'oldest': 'Oldest',
     };
     final sortValue = sortItems.containsKey(c.query.sort) ? c.query.sort : null;
@@ -280,7 +281,7 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           )
         else ...[
-          SolutionGrid(items: c.items),
+          SolutionGrid(items: c.items, showUpdated: c.query.sort == 'updated'),
           Pager(
             page: c.page,
             total: c.total,

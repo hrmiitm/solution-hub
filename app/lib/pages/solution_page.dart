@@ -12,6 +12,7 @@ import '../widgets/change_note_dialog.dart';
 import '../widgets/common.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/resource_preview.dart';
+import '../widgets/solution_like_button.dart';
 
 class SolutionPage extends StatefulWidget {
   const SolutionPage({super.key, required this.username, required this.slug});
@@ -336,12 +337,13 @@ class _SolutionPageState extends State<SolutionPage> {
             dates,
             style: TextStyle(color: context.colors.muted, fontSize: 12),
           ),
-          if (s.isOwner) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              SolutionLikeButton(solution: s),
+              if (s.isOwner) ...[
                 OutlinedButton.icon(
                   onPressed: _busy ? null : () => context.go('${s.path}/edit'),
                   icon: const Icon(Icons.edit_outlined, size: 16),
@@ -379,8 +381,8 @@ class _SolutionPageState extends State<SolutionPage> {
                   label: const Text('Delete'),
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );

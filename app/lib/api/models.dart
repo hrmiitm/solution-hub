@@ -82,6 +82,18 @@ enum SolutionVisibility {
   );
 }
 
+class SolutionLikes {
+  const SolutionLikes({required this.count, required this.likedByMe});
+
+  final int count;
+  final bool likedByMe;
+
+  factory SolutionLikes.fromJson(Map<String, dynamic> j) => SolutionLikes(
+    count: (j['likeCount'] as int?) ?? 0,
+    likedByMe: j['likedByMe'] == true,
+  );
+}
+
 class Solution {
   const Solution({
     required this.id,
@@ -108,6 +120,7 @@ class Solution {
     required this.completedAt,
     required this.owner,
     required this.isOwner,
+    this.likes = const SolutionLikes(count: 0, likedByMe: false),
   });
 
   final String id;
@@ -137,6 +150,7 @@ class Solution {
   final DateTime? completedAt;
   final Owner owner;
   final bool isOwner;
+  final SolutionLikes likes;
 
   bool get isCompleted => status == SolutionStatus.completed;
 
@@ -170,6 +184,7 @@ class Solution {
     completedAt: _dateOrNull(j['completedAt']),
     owner: Owner.fromJson(j['owner'] as Map<String, dynamic>),
     isOwner: j['isOwner'] == true,
+    likes: SolutionLikes.fromJson(j),
   );
 }
 

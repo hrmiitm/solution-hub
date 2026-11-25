@@ -11,6 +11,18 @@ import '../widgets/common.dart';
 import '../widgets/pager.dart';
 import '../widgets/solution_card.dart';
 
+enum _ProfileTab {
+  all('All'),
+  ongoing('Ongoing', status: 'ongoing'),
+  completed('Completed', status: 'completed'),
+  liked('Liked solutions');
+
+  const _ProfileTab(this.label, {this.status});
+
+  final String label;
+  final String? status;
+}
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, required this.username});
   final String username;
@@ -20,10 +32,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  late final _api = AppScope.of(context).api;
+  late final _auth = AppScope.of(context).auth;
+  String? _signedInUsername;
   Profile? _profile;
   List<Solution> _items = [];
   int _total = 0;
-  String? _status; // null = all
+  _ProfileTab _tab = _ProfileTab.all;
   bool _loading = true;
   int _page = 1;
   Object? _error;
@@ -32,41 +47,71 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _signedInUsername = _auth.me?.username;
+    _auth.addListener(_onAuthChanged);
+    _api.likesChanged.addListener(_load);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    _api.likesChanged.removeListener(_load);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    final username = _auth.me?.username;
+    if (username == _signedInUsername) return;
+    _signedInUsername = username;
+    _reset();
   }
 
   @override
   void didUpdateWidget(ProfilePage old) {
     super.didUpdateWidget(old);
-    if (old.username != widget.username) {
-      _profile = null;
-      _status = null;
-      _page = 1;
-      _load();
-    }
+    if (old.username != widget.username) _reset();
+  }
+
+  void _reset() {
+    _profile = null;
+    _items = [];
+    _tab = _ProfileTab.all;
+    _page = 1;
+    _load();
   }
 
   SolutionQuery _query(int page) => SolutionQuery(
     filters: {
-      if (_status != null) 'status': {_status!},
+      if (_tab.status case final status?) 'status': {status},
     },
     page: page,
   );
 
   Future<void> _load() async {
-    final api = AppScope.of(context).api;
     final id = ++_request;
+    final query = _query(_page);
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final results = await Future.wait([
-        api.profile(widget.username),
-        api.userSolutions(widget.username, _query(_page)),
+        _api.profile(widget.username),
+        _tab == _ProfileTab.liked
+            ? _api.likedSolutions(query)
+            : _api.userSolutions(widget.username, query),
       ]);
       if (!mounted || id != _request) return;
       final page = results[1] as SolutionPage;
+      final lastPage = page.total == 0
+          ? 1
+          : (page.total + query.limit - 1) ~/ query.limit;
+      if (_page > lastPage) {
+        _page = lastPage;
+        await _load();
+        return;
+      }
       setState(() {
         _profile = results[0] as Profile;
         _items = page.items;
@@ -182,25 +227,23 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: context.colors.line)),
               ),
-              child: Row(
+              child: Wrap(
                 children: [
-                  for (final (value, label) in [
-                    (null, 'All'),
-                    ('ongoing', 'Ongoing'),
-                    ('completed', 'Completed'),
-                  ])
-                    _Tab(
-                      label: label,
-                      active: _status == value,
-                      onTap: () {
-                        if (_status == value) return;
-                        setState(() {
-                          _status = value;
-                          _page = 1;
-                        });
-                        _load();
-                      },
-                    ),
+                  for (final tab in _ProfileTab.values)
+                    if (tab != _ProfileTab.liked || p.isSelf)
+                      _Tab(
+                        label: tab.label,
+                        active: _tab == tab,
+                        onTap: () {
+                          if (_tab == tab) return;
+                          setState(() {
+                            _tab = tab;
+                            _items = [];
+                            _page = 1;
+                          });
+                          _load();
+                        },
+                      ),
                 ],
               ),
             ),
@@ -212,11 +255,20 @@ class _ProfilePageState extends State<ProfilePage> {
             else if (_items.isEmpty)
               Card(
                 child: MessageView(
-                  icon: Icons.inbox_outlined,
-                  title: p.isSelf
+                  icon: _tab == _ProfileTab.liked
+                      ? Icons.favorite_border
+                      : Icons.inbox_outlined,
+                  title: _tab == _ProfileTab.liked
+                      ? 'No liked solutions yet'
+                      : p.isSelf
                       ? 'You have no solutions here yet'
                       : 'No solutions to show',
-                  action: p.isSelf
+                  action: _tab == _ProfileTab.liked
+                      ? FilledButton(
+                          onPressed: () => context.go('/'),
+                          child: const Text('Explore solutions'),
+                        )
+                      : p.isSelf
                       ? FilledButton(
                           onPressed: () => context.go('/new'),
                           child: const Text('Create a solution'),
