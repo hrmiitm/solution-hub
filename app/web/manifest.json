@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#F7F8FA",
-    "theme_color": "#2859CE",
+    "theme_color": "#182C4A",
     "description": "Create, track and discover projects, demos and business solutions.",
     "orientation": "any",
     "prefer_related_applications": false,

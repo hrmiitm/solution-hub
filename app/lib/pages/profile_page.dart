@@ -138,7 +138,27 @@ class _ProfilePageState extends State<ProfilePage> {
           child: ErrorView(error: _error!, onRetry: _load),
         );
       }
-      return const LoadingView();
+      return const LoadingView(
+        child: SingleChildScrollView(
+          child: PageBody(
+            child: Column(
+              spacing: 16,
+              children: [
+                Panel(
+                  child: Row(
+                    spacing: 14,
+                    children: [
+                      SkeletonBlock(height: 56, width: 56, radius: 28),
+                      Expanded(child: SkeletonLines(widths: [0.5, 0.72, 0.35])),
+                    ],
+                  ),
+                ),
+                SolutionGrid.loading(),
+              ],
+            ),
+          ),
+        ),
+      );
     }
     final p = _profile!;
     final compact = MediaQuery.sizeOf(context).width < kCompactWidth;
@@ -251,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
             if (_error != null)
               ErrorView(error: _error!, onRetry: _load)
             else if (_loading && _items.isEmpty)
-              const LoadingView()
+              const SolutionGrid.loading()
             else if (_items.isEmpty)
               Card(
                 child: MessageView(

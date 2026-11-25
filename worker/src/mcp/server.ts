@@ -21,8 +21,8 @@ const descriptions: Record<ToolName, string> = {
   get_profile: 'Read a public profile and count only solutions visible to your connected account. Omit the username for your own profile.',
   get_solution_updates: 'Read the recent creation, edit, progress, status and visibility history of a solution you can see.',
   list_categories: 'List categories, technologies and other filter values with counts over solutions visible to you.',
-  create_solution: 'Create a solution owned by the connected account. Defaults to private. Requires write consent.',
-  update_solution: 'Edit fields of a solution you own and explain the change in its history. Fields you omit keep their existing values. Requires write consent.',
+  create_solution: 'Publish a solution owned by the connected account. Inspect the project and prepare an accurate title, summary, Markdown description, keywords, categories and relevant resource URLs. Default to private and share only as authorized. Requires write consent.',
+  update_solution: 'Review an owned solution and its recent history before editing. Verify project changes and resource URLs, and explain the change in the history. Omitted fields keep their existing values. Change visibility only as authorized. Requires write consent.',
   add_progress_update: 'Add a Markdown progress note to a solution you own. Requires write consent.',
   change_solution_status: 'Complete or reopen a solution you own. A completion can include an explanation in its history. Requires write consent.',
   like_solution: 'Like and save a visible solution for the connected account. Returns the total likes and the account’s like state. Requires write consent.',
@@ -120,7 +120,10 @@ function toolResult(data: Record<string, unknown>, isError = false): CallToolRes
 
 function createServer(env: Env, principal: McpPrincipal, origin: string): Server {
   const server = new Server(
-    { name: 'solutionhub', title: 'SolutionHub', version: '1.0.0' },
+    {
+      name: 'solutionhub', title: 'SolutionHub', version: '1.0.0', websiteUrl: origin,
+      icons: [{ src: `${origin}/icons/Icon-192.png`, mimeType: 'image/png', sizes: ['192x192'] }],
+    },
     { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: INSTRUCTIONS },
   );
 

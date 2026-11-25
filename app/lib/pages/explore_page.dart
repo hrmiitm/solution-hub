@@ -103,9 +103,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _toolbar(bool compact) {
     final sortItems = <String?, String>{
-      null: 'Recently created',
+      null: 'Recently updated',
       if (c.query.q.trim().isNotEmpty) 'relevance': 'Best match',
-      'updated': 'Recently updated',
+      'created': 'Recently created',
       'oldest': 'Oldest',
     };
     final sortValue = sortItems.containsKey(c.query.sort) ? c.query.sort : null;
@@ -221,19 +221,16 @@ class _ExplorePageState extends State<ExplorePage> {
       children: [
         Row(
           children: [
-            Text(
-              c.loading && c.items.isEmpty
-                  ? 'Loading…'
-                  : '${c.total} ${c.total == 1 ? 'solution' : 'solutions'}',
-              style: TextStyle(fontSize: 12, color: context.colors.muted),
-            ),
+            if (c.loading && c.items.isEmpty)
+              const SkeletonBlock(height: 12, width: 78)
+            else
+              Text(
+                '${c.total} ${c.total == 1 ? 'solution' : 'solutions'}',
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
+              ),
             if (c.loading && c.items.isNotEmpty) ...[
               const SizedBox(width: 8),
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1.6),
-              ),
+              const SkeletonBlock(height: 8, width: 28),
             ],
           ],
         ),
@@ -267,7 +264,7 @@ class _ExplorePageState extends State<ExplorePage> {
             child: ErrorView(error: c.error!, onRetry: c.refresh),
           )
         else if (c.loading && c.items.isEmpty)
-          const LoadingView()
+          const SolutionGrid.loading()
         else if (c.items.isEmpty)
           Card(
             child: MessageView(
@@ -281,7 +278,10 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           )
         else ...[
-          SolutionGrid(items: c.items, showUpdated: c.query.sort == 'updated'),
+          SolutionGrid(
+            items: c.items,
+            showUpdated: c.query.sort != 'created' && c.query.sort != 'oldest',
+          ),
           Pager(
             page: c.page,
             total: c.total,

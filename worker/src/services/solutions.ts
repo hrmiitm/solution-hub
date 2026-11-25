@@ -486,10 +486,10 @@ export async function searchSolutions(db: D1Database, viewer: Viewer, params: Se
   if (terms.length > 1) scoreParts.push(`(instr(lower(s.title), ${bind(terms.join(' '))}) > 0) * 15`);
   const score = scoreParts.length ? scoreParts.join(' + ') : '0';
 
-  const sort = params.sort ?? 'created';
+  const sort = params.sort ?? 'updated';
   const order = {
     relevance: `score DESC, s.updated_at DESC`,
-    updated: `s.updated_at DESC`,
+    updated: `s.updated_at DESC, like_count DESC`,
     created: `s.created_at DESC, like_count DESC`,
     oldest: `s.created_at ASC`,
   }[sort];

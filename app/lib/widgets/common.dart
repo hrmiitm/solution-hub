@@ -246,14 +246,76 @@ class Panel extends StatelessWidget {
 }
 
 class LoadingView extends StatelessWidget {
-  const LoadingView({super.key});
+  const LoadingView({super.key, this.child});
+
+  final Widget? child;
 
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(
-      padding: EdgeInsets.all(40),
-      child: CircularProgressIndicator(strokeWidth: 2.5),
+  Widget build(BuildContext context) => Semantics(
+    label: 'Loading',
+    liveRegion: true,
+    child: ExcludeSemantics(
+      child:
+          child ??
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: const Padding(
+                padding: EdgeInsets.all(20),
+                child: SkeletonLines(),
+              ),
+            ),
+          ),
     ),
+  );
+}
+
+class SkeletonBlock extends StatelessWidget {
+  const SkeletonBlock({
+    super.key,
+    required this.height,
+    this.width,
+    this.radius = 6,
+  });
+
+  final double height;
+  final double? width;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: context.colors.tagBg,
+      borderRadius: BorderRadius.circular(radius),
+    ),
+  );
+}
+
+class SkeletonLines extends StatelessWidget {
+  const SkeletonLines({
+    super.key,
+    this.widths = const [1, 0.86, 0.64],
+    this.height = 12,
+  });
+
+  final List<double> widths;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: 9,
+    children: [
+      for (final width in widths)
+        FractionallySizedBox(
+          widthFactor: width,
+          alignment: Alignment.centerLeft,
+          child: SkeletonBlock(height: height),
+        ),
+    ],
   );
 }
 

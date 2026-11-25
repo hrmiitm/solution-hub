@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../app_scope.dart';
 import '../auth/google_button.dart';
 import '../theme.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/common.dart';
 
 class SignInPage extends StatelessWidget {
   const SignInPage({super.key});
@@ -26,19 +28,7 @@ class SignInPage extends StatelessWidget {
                   builder: (context, _) => Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: context.colors.accent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.hub,
-                          color: context.colors.onAccent,
-                          size: 28,
-                        ),
-                      ),
+                      const BrandMark(size: 48),
                       const SizedBox(height: 14),
                       const Text(
                         'SolutionHub',
@@ -61,12 +51,7 @@ class SignInPage extends StatelessWidget {
                           busy: auth.busy,
                         )
                       else if (auth.error == null)
-                        const SizedBox(
-                          height: 44,
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
+                        const SkeletonBlock(height: 44, width: 198),
                       if (kIsWeb && auth.busy) ...[
                         const SizedBox(height: 12),
                         Text(

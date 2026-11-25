@@ -4,6 +4,7 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 import '../app_scope.dart';
 import '../theme.dart';
+import 'brand_mark.dart';
 import 'common.dart';
 import 'mcp_dialog.dart';
 
@@ -80,19 +81,7 @@ class AppShell extends StatelessWidget {
                             padding: const EdgeInsets.all(4),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: context.colors.accent,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.hub,
-                                    color: context.colors.onAccent,
-                                    size: 18,
-                                  ),
-                                ),
+                                const BrandMark(size: 30),
                                 if (!compact) ...[
                                   const SizedBox(width: 9),
                                   const Text(

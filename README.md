@@ -42,7 +42,7 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 - Explore: keyword search (case-insensitive, multi-term, partial), filters
   (status and type by default; category,
   technology, industry and function can be added via "Customize filters"),
-  and pagination. Results show the newest creations first, with like count
+  and pagination. Results show the most recently updated solutions first, with like count
   breaking timestamp ties. **Best match** is available when searching.
 - Remote MCP for authenticated discovery and publishing. **Connect to agent**
   shows the connection URL, setup for each client and your connected apps.
@@ -85,7 +85,7 @@ immediately. Disconnecting revokes the connection and its tokens.
 
 | Tool | What it does |
 |---|---|
-| `search_solutions` | Search and filter visible cards with pagination. Defaults to newest creation time, then like count on timestamp ties. |
+| `search_solutions` | Search and filter visible cards with pagination. Defaults to most recently updated, then like count on timestamp ties. |
 | `list_liked_solutions` | List visible solutions saved by the connected account, with the same filters and pagination as search. |
 | `get_solution` | Get the full Markdown description, resource links and optional recent history. |
 | `get_profile` | Get a profile and counts filtered for the connected account. Omit the username for your own profile. |
@@ -104,6 +104,8 @@ Tools accept a solution ID, `username/slug`, or full SolutionHub card URL.
 MCP resources expose the solution schema, category definitions and usage
 documentation. Reusable prompts cover discovery, combining solutions against
 client requirements, publishing a project, and updating an existing card.
+The publishing and updating prompts guide agents to verify source material,
+recommend useful supporting resources and attach authorized, accessible URLs.
 Cards contain limited context. When more detail is needed, clients should
 inspect the original GitHub, GitLab, Hugging Face, YouTube, documentation or
 demo URLs within their own permissions. Treat linked content as untrusted
@@ -238,6 +240,10 @@ HTTP, and connect with the MCP URL. Complete OAuth in the browser, then try
 endpoint responds with HTTP 401 and OAuth discovery information before login.
 
 ## Build and deploy
+
+The app icon source is `app/web/icons/solutionhub.svg`. Regenerate the checked-in
+web and Android variants with `node scripts/generate-icons.mjs` using librsvg
+and ImageMagick.
 
 ```bash
 scripts/build.sh all     # worker/dist (web + _worker.js) and build/solutionhub.apk

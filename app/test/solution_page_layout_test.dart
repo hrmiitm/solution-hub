@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -38,15 +39,18 @@ Future<void> _showSolution(
   WidgetTester tester, {
   required double width,
   required List<Map<String, String>> resources,
+  bool checkLoading = false,
 }) async {
   tester.view.physicalSize = Size(width, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  final pending = checkLoading ? Completer<void>() : null;
   final api = ApiClient(
     baseUrl: 'https://example.invalid',
     tokenStore: _TestTokenStore(),
     client: MockClient((request) async {
+      await pending?.future;
       final body = switch (request.url.path) {
         '/api/users/sam/solutions/$_slug' => {
           'id': 'layout-1',
@@ -79,15 +83,29 @@ Future<void> _showSolution(
       ),
     ),
   );
+  if (pending != null) {
+    expect(find.byType(SkeletonBlock), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Project showcase'), findsNothing);
+    pending.complete();
+  }
   await tester.pumpAndSettle();
+  expect(find.byType(SkeletonBlock), findsNothing);
 }
 
 Finder _panel(Finder child) =>
     find.ancestor(of: child, matching: find.byType(Panel)).first;
 
 void main() {
-  testWidgets('desktop places resources beside the preview', (tester) async {
-    await _showSolution(tester, width: 1280, resources: _resources);
+  testWidgets('desktop places resources and details in the sidebar', (
+    tester,
+  ) async {
+    await _showSolution(
+      tester,
+      width: 1280,
+      resources: _resources,
+      checkLoading: true,
+    );
     final preview = tester.getRect(_panel(find.byType(ResourcePreview)));
     final resources = tester.getRect(_panel(find.text('Resources')));
     final description = tester.getRect(_panel(find.text('Description')));
@@ -100,8 +118,10 @@ void main() {
     expect(description.right, resources.right);
     expect(description.top, greaterThan(preview.bottom));
     expect(description.top, greaterThan(resources.bottom));
-    expect(details.top, greaterThan(description.bottom));
-    expect(history.top, greaterThan(details.bottom));
+    expect(history.top, greaterThan(description.bottom));
+    expect(details.top, history.top);
+    expect(details.left, greaterThan(history.right));
+    expect(details.left, resources.left);
 
     final previewButton = find.byTooltip('Preview Architecture diagram');
     await tester.tap(previewButton);

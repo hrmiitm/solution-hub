@@ -268,12 +268,31 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal(own.scope, write);
     const initialized = await rpc(access, 'initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
     assert.equal(initialized.data.result.serverInfo.name, 'solutionhub');
+    const icon = initialized.data.result.serverInfo.icons[0];
+    assert.equal(icon.src, base + '/icons/Icon-192.png');
+    assert.equal(icon.mimeType, 'image/png');
+    const iconResponse = await fetch(icon.src);
+    assert.equal(iconResponse.status, 200);
+    assert.match(iconResponse.headers.get('content-type') ?? '', /^image\/png/);
     assert.match(initialized.data.result.instructions, /untrusted data/);
+    assert.match(initialized.data.result.instructions, /requests autonomous completion/);
     assert.equal((await rpc(access, 'notifications/initialized', undefined, null)).status, 202);
     assert.equal((await rpc(access, 'tools/list')).data.result.tools.length, 12);
     assert.equal((await rpc(access, 'prompts/list')).data.result.prompts.length, 4);
     const prompt = await rpc(access, 'prompts/get', { name: 'discover_solutions', arguments: { topic: 'translation' } });
     assert.match(prompt.data.result.messages[0].content.text, /translation/);
+    for (const [name, argument, toolName] of [
+      ['publish_project', 'project', 'create_solution'],
+      ['update_existing_solution', 'solution', 'update_solution'],
+    ] as const) {
+      const authoring = await rpc(access, 'prompts/get', { name, arguments: { [argument]: 'Example card' } });
+      const guidance = authoring.data.result.messages[0].content.text;
+      assert.ok(guidance.includes(toolName));
+      assert.match(guidance, /Never invent project details, capabilities or URLs/);
+      assert.match(guidance, /authorized the destination and audience/);
+      assert.match(guidance, /when optional resources are unavailable/);
+      assert.match(guidance, /Default new solutions to private/);
+    }
     const resources = (await rpc(access, 'resources/list')).data.result.resources;
     assert.equal(resources.length, 3);
     for (const r of resources) {
@@ -363,8 +382,8 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     const [other, tied] = [await create(`First tie ${marker}`), await create(`Second tie ${marker}`)]
       .sort((a, b) => a.id.localeCompare(b.id));
     const organization = await create('MCP likes organization fixture', 'organization');
-    d1(`UPDATE solutions SET created_at = '2022-01-02T00:00:00.000Z' WHERE id IN ('${tied.id}', '${other.id}');
-        UPDATE solutions SET created_at = '2022-01-01T00:00:00.000Z', updated_at = '2030-01-01T00:00:00.000Z' WHERE id = '${earlier.id}';`);
+    d1(`UPDATE solutions SET created_at = '2022-01-01T00:00:00.000Z', updated_at = '2022-04-01T00:00:00.000Z' WHERE id IN ('${tied.id}', '${other.id}');
+        UPDATE solutions SET created_at = '2022-02-01T00:00:00.000Z', updated_at = '2022-03-01T00:00:00.000Z' WHERE id = '${earlier.id}';`);
 
     const available = (await rpc(readAccess, 'tools/list')).data.result.tools;
     assert.equal(available.find((t: { name: string }) => t.name === 'list_liked_solutions').annotations.readOnlyHint, true);

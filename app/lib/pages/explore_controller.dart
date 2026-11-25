@@ -41,7 +41,7 @@ class ExploreController extends ChangeNotifier {
   SolutionQuery query = const SolutionQuery(visibility: sharedLevels);
   List<Solution> items = [];
   int total = 0;
-  bool loading = false;
+  bool loading = true;
   Object? error;
   Categories categories = Categories.empty;
   Set<String> extraFilters = {};

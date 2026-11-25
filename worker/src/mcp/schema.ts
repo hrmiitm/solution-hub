@@ -81,7 +81,7 @@ export const SOLUTION_FIELDS: Record<string, Schema> = {
     enum: [...VISIBILITIES],
     description:
       'Who can see it. "public": anyone. "organization": signed-in members of the owner\'s Google Workspace domain ' +
-      '(only for Workspace accounts). "private": only the owner. Default on create: "private". Confirm with the user before making anything public.',
+      '(only for Workspace accounts). "private": only the owner. Default on create is private. Make a solution public only with user authorization.',
   },
 };
 
@@ -109,8 +109,8 @@ const SEARCH_SCHEMA = object({
   function: tagList('Match any of these business functions.'),
   owner: { type: 'string', maxLength: 40, description: 'Only solutions owned by this username. Use "me" for the connected user.' },
   sort: {
-    type: 'string', enum: [...SORTS], default: 'created',
-    description: 'Newest creation time first by default, with higher like counts first when timestamps tie. Use relevance for best match.',
+    type: 'string', enum: [...SORTS], default: 'updated',
+    description: 'Most recently updated first by default, with higher like counts first when timestamps tie. Use relevance for best match.',
   },
   page: { type: 'integer', minimum: 1, maximum: 1000, default: 1 },
   limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../app_scope.dart';
 import '../theme.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/common.dart';
 
 class McpConsentPage extends StatefulWidget {
@@ -84,11 +85,7 @@ class _McpConsentPageState extends State<McpConsentPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.hub_outlined,
-                          color: context.colors.accent,
-                          size: 20,
-                        ),
+                        const BrandMark(size: 26),
                         const SizedBox(width: 8),
                         Text(
                           'SolutionHub',
@@ -113,7 +110,7 @@ class _McpConsentPageState extends State<McpConsentPage> {
                               }
                               final request = snapshot.data;
                               if (request == null) {
-                                return const LinearProgressIndicator();
+                                return const LoadingView();
                               }
                               return _permissions(request, account.username);
                             },

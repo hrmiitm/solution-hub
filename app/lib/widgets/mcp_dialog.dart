@@ -7,6 +7,7 @@ import '../api/models.dart';
 import '../app_scope.dart';
 import '../auth/auth_controller.dart';
 import '../theme.dart';
+import 'brand_mark.dart';
 
 Future<void> showMcpDialog(BuildContext context) {
   final scope = AppScope.of(context);
@@ -123,6 +124,8 @@ class _McpDialogState extends State<_McpDialog> {
               padding: const EdgeInsets.fromLTRB(24, 16, 12, 12),
               child: Row(
                 children: [
+                  const BrandMark(size: 30),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text('Connect to agent', style: text.headlineSmall),
                   ),

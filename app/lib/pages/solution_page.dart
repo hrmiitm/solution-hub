@@ -28,6 +28,7 @@ class _SolutionPageState extends State<SolutionPage> {
   List<SolutionUpdate> _updates = [];
   Object? _error;
   bool _busy = false;
+  final _historyKey = GlobalKey();
   ({String title, String note})? _pendingChangeNote;
 
   ApiClient get _api => AppScope.of(context).api;
@@ -168,8 +169,9 @@ class _SolutionPageState extends State<SolutionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 980;
     if (_s == null) {
-      if (_error == null) return const LoadingView();
+      if (_error == null) return _loadingPage(wide);
       final signedOut = AppScope.of(context).auth.me == null;
       if (signedOut &&
           _error is ApiException &&
@@ -199,12 +201,27 @@ class _SolutionPageState extends State<SolutionPage> {
       );
     }
     final s = _s!;
-    final wide = MediaQuery.sizeOf(context).width >= 980;
     final preview = switch (_previewResource(s)) {
       final resource? => Panel(child: ResourcePreview(resource)),
       null => null,
     };
     final resources = s.resources.isEmpty ? null : _ResourcesPanel(solution: s);
+    final details = _DetailsPanel(solution: s);
+    final history = _HistoryPanel(
+      key: _historyKey,
+      updates: _updates,
+      canPost: s.isOwner,
+      onPost: (msg) async {
+        final updates = await _api.addUpdate(s.id, msg);
+        final fresh = await _api.getSolutionById(s.id);
+        if (mounted && _s?.id == s.id) {
+          setState(() {
+            _updates = updates;
+            _s = fresh;
+          });
+        }
+      },
+    );
 
     return SingleChildScrollView(
       child: PageBody(
@@ -215,14 +232,7 @@ class _SolutionPageState extends State<SolutionPage> {
             _header(s),
             const SizedBox(height: 14),
             if (wide && preview != null && resources != null) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: preview),
-                  const SizedBox(width: 14),
-                  SizedBox(width: 320, child: resources),
-                ],
-              ),
+              _withSidebar(preview, resources),
               const SizedBox(height: 14),
             ] else ...[
               if (preview != null) ...[preview, const SizedBox(height: 14)],
@@ -238,23 +248,75 @@ class _SolutionPageState extends State<SolutionPage> {
                   : MarkdownView(s.descriptionMd!),
             ),
             const SizedBox(height: 14),
-            _DetailsPanel(solution: s),
-            const SizedBox(height: 14),
-            _HistoryPanel(
-              updates: _updates,
-              canPost: s.isOwner,
-              onPost: (msg) async {
-                final updates = await _api.addUpdate(s.id, msg);
-                final fresh = await _api.getSolutionById(s.id);
-                if (mounted) {
-                  setState(() {
-                    _updates = updates;
-                    _s = fresh;
-                  });
-                }
-              },
-            ),
+            if (wide)
+              _withSidebar(history, details)
+            else ...[
+              details,
+              const SizedBox(height: 14),
+              history,
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _withSidebar(Widget main, Widget side) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    spacing: 14,
+    children: [
+      Expanded(child: main),
+      SizedBox(width: 320, child: side),
+    ],
+  );
+
+  Widget _loadingPage(bool wide) {
+    const preview = Panel(
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: SkeletonBlock(height: 1, radius: 9),
+      ),
+    );
+    const resources = Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 10,
+        children: [
+          SkeletonBlock(height: 17, width: 94),
+          SkeletonBlock(height: 48),
+          SkeletonBlock(height: 48),
+        ],
+      ),
+    );
+    return LoadingView(
+      child: SingleChildScrollView(
+        child: PageBody(
+          maxWidth: 1200,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 14,
+            children: [
+              const Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 12,
+                  children: [
+                    SkeletonBlock(height: 16, width: 154),
+                    SkeletonLines(widths: [0.65], height: 28),
+                    SkeletonLines(widths: [0.84, 0.44]),
+                    SkeletonBlock(height: 31, width: 85),
+                  ],
+                ),
+              ),
+              if (wide)
+                _withSidebar(preview, resources)
+              else ...[
+                preview,
+                resources,
+              ],
+              const Panel(child: SkeletonLines()),
+            ],
+          ),
         ),
       ),
     );
@@ -647,6 +709,7 @@ class _DetailsPanel extends StatelessWidget {
 
 class _HistoryPanel extends StatefulWidget {
   const _HistoryPanel({
+    super.key,
     required this.updates,
     required this.canPost,
     required this.onPost,
@@ -675,7 +738,7 @@ class _HistoryPanelState extends State<_HistoryPanel> {
     setState(() => _posting = true);
     try {
       await widget.onPost(msg);
-      _text.clear();
+      if (mounted) _text.clear();
     } on ApiException catch (e) {
       if (mounted) showMessage(context, e.message);
     } finally {

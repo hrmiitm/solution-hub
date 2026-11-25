@@ -423,13 +423,14 @@ describe('solution likes', () => {
     assert.equal((await api(carol, 'DELETE', likePath(org.id))).status, 404);
   });
 
-  test('default order uses creation date, then likes, before applying pagination', async () => {
+  test('default order uses last updated, then likes, before applying pagination', async () => {
     const marker = `likeorder${run}`;
-    const newer = await create(`Newer ${marker}`);
-    const tied = await create(`Tied ${marker}`);
+    const [newer, tied] = [await create(`First tie ${marker}`), await create(`Second tie ${marker}`)]
+      .sort((a, b) => a.id.localeCompare(b.id));
+    assert.ok(newer && tied);
     const older = await create(`Older ${marker}`);
-    d1(`UPDATE solutions SET created_at = '2020-01-02T00:00:00.000Z' WHERE id IN ('${newer.id}', '${tied.id}');
-        UPDATE solutions SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = '${older.id}';`);
+    d1(`UPDATE solutions SET created_at = '2019-01-01T00:00:00.000Z', updated_at = '2020-01-02T00:00:00.000Z' WHERE id IN ('${newer.id}', '${tied.id}');
+        UPDATE solutions SET created_at = '2019-12-01T00:00:00.000Z', updated_at = '2020-01-01T00:00:00.000Z' WHERE id = '${older.id}';`);
     assert.equal((await api(bob, 'PUT', likePath(tied.id))).status, 200);
     assert.equal((await api(bob, 'PUT', likePath(older.id))).status, 200);
     assert.equal((await api(carol, 'PUT', likePath(older.id))).status, 200);
@@ -445,6 +446,7 @@ describe('solution likes', () => {
     const saved = await api(bob, 'GET', `${likedList}?limit=1&page=2`);
     assert.equal(saved.body.total, 2);
     assert.equal(saved.body.items[0].id, older.id);
+    assert.equal((await api(null, 'GET', `${list}&sort=created`)).body.items[0].id, older.id);
   });
 });
 
