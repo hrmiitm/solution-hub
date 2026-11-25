@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check tag and configuration
         env:
@@ -55,7 +55,7 @@ jobs:
           fi
           [[ "$APP_URL" == https://* ]] || { echo "::error::APP_URL must be https"; exit 1; }
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -75,7 +75,7 @@ jobs:
         run: |
           jks="$RUNNER_TEMP/release.jks"
           printf '%s' "$KEYSTORE" | base64 -d > "$jks"
-          got="$(keytool -list -v -keystore "$jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sed -n 's/^ *SHA1: *//p')"
+          got="$(keytool -list -v -keystore "$jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | sed -n 's/^[[:space:]]*SHA1:[[:space:]]*//p')"
           if [[ "$got" != "$EXPECTED_SHA1" ]]; then
             echo "::error::Signing key SHA-1 is $got, expected $EXPECTED_SHA1. An APK signed with another key cannot use Google sign-in."
             exit 1
