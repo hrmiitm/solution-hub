@@ -13,6 +13,8 @@ import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:8788';
+// Local only: these checks sign in as the seeded owners (real people in production) and edit their cards.
+const skip = process.env.D1_TARGET === 'remote' ? 'seed checks impersonate seeded owners; run them only locally' : false;
 const workerDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'worker');
 const run = randomBytes(3).toString('hex');
 
@@ -47,6 +49,7 @@ async function api(user: U | null, method: string, path: string, body?: unknown)
 }
 
 before(() => {
+  if (skip) return;
   const now = new Date().toISOString();
   const later = new Date(Date.now() + 86_400_000).toISOString();
   const hash = (u: U) => createHash('sha256').update(u.token).digest('hex');
@@ -59,6 +62,7 @@ before(() => {
 });
 
 after(() => {
+  if (skip) return;
   const hashes = [...viewers, anand, jivraj, sujal].map((u) => `'${createHash('sha256').update(u.token).digest('hex')}'`).join(', ');
   d1(`DELETE FROM sessions WHERE id IN (${hashes}); DELETE FROM users WHERE id IN (${viewers.map((u) => `'${u.id}'`).join(', ')});`);
 });
@@ -66,7 +70,7 @@ after(() => {
 const list = async (v: U | null, owner: string) => (await api(v, 'GET', `/api/users/${owner}/solutions?limit=50`)).body.items as { id: string; title: string; visibility: string; path: string }[];
 const total = async (v: U | null, owner: string) => (await api(v, 'GET', `/api/users/${owner}`)).body.counts.total as number;
 
-describe('initial dataset and visibility', () => {
+describe('initial dataset and visibility', { skip }, () => {
   test('anonymous visitors see only the public cards; profile counts match', async () => {
     assert.deepEqual([await total(null, 'sanand0'), await total(null, 'jivraj-18'), await total(null, 'sujalpradhan'), await total(null, 'hrmiitm')], [6, 6, 6, 2]);
     for (const o of ['sanand0', 'jivraj-18', 'sujalpradhan', 'hrmiitm']) assert.ok((await list(null, o)).every((s) => s.visibility === 'public'), o);
@@ -134,7 +138,7 @@ describe('initial dataset and visibility', () => {
   });
 });
 
-describe('initial status: at most two Ongoing per user, the latest ones', () => {
+describe('initial status: at most two Ongoing per user, the latest ones', { skip }, () => {
   test('profile counts and which cards are ongoing', async () => {
     const counts = async (u: string) => (await api(null, 'GET', `/api/users/${u}`)).body.counts;
     const own = async (viewer: U, u: string) => (await api(viewer, 'GET', `/api/users/${u}`)).body.counts;
@@ -162,7 +166,7 @@ describe('initial status: at most two Ongoing per user, the latest ones', () => 
   });
 });
 
-describe('media on cards', () => {
+describe('media on cards', { skip }, () => {
   test('most cards have images, documents or videos; thumbnails and previews come through the API', async () => {
     const all = (await api(null, 'GET', '/api/solutions?limit=50')).body.items as { id: string; thumbnailUrl: string | null; primaryResource: string | null; resources: { type: string; url: string }[] }[];
     const withMedia = all.filter((s) => s.resources.some((r) => ['youtube', 'image', 'pdf'].includes(r.type)));
@@ -175,7 +179,7 @@ describe('media on cards', () => {
   });
 });
 
-describe('all users are equal: only owners edit and delete', () => {
+describe('all users are equal: only owners edit and delete', { skip }, () => {
   test('there is no admin or privileged surface, and /api/me carries no role', async () => {
     for (const p of ['/api/admin', '/api/admin/users', '/api/me/imports']) assert.equal((await api(anand, 'GET', p)).status, 404, p);
     const me = (await api(anand, 'GET', '/api/me')).body.user;
@@ -225,7 +229,7 @@ describe('all users are equal: only owners edit and delete', () => {
   });
 });
 
-describe('pagination', () => {
+describe('pagination', { skip }, () => {
   const page = (v: U | null, qs: string) => api(v, 'GET', `/api/solutions?${qs}`);
 
   test('pages are complete, disjoint and stable; total is constant', async () => {

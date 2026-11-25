@@ -102,7 +102,7 @@ npx wrangler d1 export solutionhub --remote --output ../backups/$(date +%F).sql 
 cd worker && npm run db:migrate:remote && npx wrangler pages deploy --project-name solutionhub-hrm --branch main
 ```
 
-Integration tests use another port with `BASE_URL=http://127.0.0.1:<port>`. After deploying, check production with `BASE_URL=https://solutionhub-hrm.pages.dev D1_TARGET=remote npm run test:integration`. It skips the MCP suite and stays far below the limits.
+Integration tests use another port with `BASE_URL=http://127.0.0.1:<port>`. After deploying, check production with `BASE_URL=https://solutionhub-hrm.pages.dev D1_TARGET=remote npm run test:integration`. It skips the MCP and seed suites (the seed suite signs in as real owners) and stays far below the limits.
 
 Initial data (see README "Initial data"): `node scripts/import.mjs seed --target remote --confirm-production`.
 

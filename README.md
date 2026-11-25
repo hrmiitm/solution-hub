@@ -238,11 +238,15 @@ organization isolation, CSRF, token rotation and revocation, and checks that
 REST and MCP return the same results for every kind of account. The MCP cases
 run locally. If port 8788 is busy, start `npx wrangler pages dev --port 8790`
 and set `BASE_URL=http://127.0.0.1:8790`. To run
-the REST and dataset checks against production after deploying:
+the REST checks against production after deploying:
 
 ```bash
 cd worker && BASE_URL=https://solutionhub-hrm.pages.dev D1_TARGET=remote npm run test:integration
 ```
+
+That run uses throwaway accounts only, sends a few hundred requests and stays
+well below the rate limits. It skips the MCP suite and the seed-data suite,
+because the seed checks sign in as the seeded owners and edit their cards.
 
 For a client check, run `npx @modelcontextprotocol/inspector`, choose Streamable
 HTTP, and connect with the MCP URL. Complete OAuth in the browser, then try
