@@ -2,8 +2,7 @@
  * The single source of truth for who may see and change a solution.
  *
  * Every read path (detail, path lookup, search, profiles, counts, categories,
- * history) and every write path goes through these functions. New transports
- * (e.g. the planned MCP server) must use them too rather than re-implement rules.
+ * history) and every write path goes through these functions, including MCP.
  *
  *   public        anyone, including anonymous visitors
  *   organization  the owner, plus signed-in users whose verified Google

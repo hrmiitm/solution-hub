@@ -11,7 +11,7 @@ import { assertCanAssign, canModify, canView, requireSignedIn, visibleSql, type 
 import { AppError, notFound } from '../lib/errors.ts';
 import type { Resource } from '../lib/resources.ts';
 import { newId, nowIso, parseJsonArray, slugify } from '../lib/util.ts';
-import { deriveSummary, type SolutionInput, type Status, type Visibility } from '../lib/validation.ts';
+import { deriveSummary, type SearchInput, type SolutionInput, type SolutionRef, type Status, type Visibility } from '../lib/validation.ts';
 import { toPublicUser, type PublicUser } from './users.ts';
 
 interface SolutionRow {
@@ -151,6 +151,11 @@ export async function getSolutionByPath(db: D1Database, viewer: Viewer, username
   return toSolution(row, viewer, true);
 }
 
+/** Resolves an id or username/slug reference, with the same visibility rules as above. */
+export async function resolveSolution(db: D1Database, viewer: Viewer, ref: SolutionRef): Promise<Solution> {
+  return 'id' in ref ? getSolution(db, viewer, ref.id) : getSolutionByPath(db, viewer, ref.username, ref.slug);
+}
+
 async function uniqueSlug(db: D1Database, ownerId: string, title: string): Promise<string> {
   const base = slugify(title) || 'solution';
   const rows = await db
@@ -242,7 +247,7 @@ const CONTENT_FIELDS: { key: keyof SolutionInput; column: keyof SolutionRow; lab
  * transitions are each recorded as their own history event, atomically with
  * the row update (single D1 batch = single transaction).
  */
-export async function updateSolution(db: D1Database, viewer: Viewer, id: string, input: SolutionInput): Promise<Solution> {
+export async function updateSolution(db: D1Database, viewer: Viewer, id: string, input: SolutionInput, progressMessage?: string): Promise<Solution> {
   const { row, actor } = await loadOwned(db, viewer, id);
   const now = nowIso();
   const next: Record<string, unknown> = {};
@@ -291,6 +296,7 @@ export async function updateSolution(db: D1Database, viewer: Viewer, id: string,
       updateStmt(db, id, actor.userId, 'status_changed', input.status === 'completed' ? 'Marked as completed' : 'Reopened', { from: row.status, to: input.status }, now),
     );
   }
+  if (progressMessage) stmts.push(updateStmt(db, id, actor.userId, 'progress_updated', progressMessage, {}, now));
   if (!stmts.length) return toSolution(row, actor, true);
 
   next.updated_at = now;
@@ -307,17 +313,21 @@ export async function deleteSolution(db: D1Database, viewer: Viewer, id: string)
   await db.prepare(`DELETE FROM solutions WHERE id = ?1 AND owner_id = ?2`).bind(id, actor.userId).run();
 }
 
-export async function listUpdates(db: D1Database, viewer: Viewer, id: string): Promise<SolutionUpdate[]> {
+export async function listUpdates(db: D1Database, viewer: Viewer, id: string, limit = 200): Promise<SolutionUpdate[]> {
   await loadReadable(db, viewer, id);
+  const binds: unknown[] = [id, limit];
+  const visible = visibleSql(viewer, (value) => `?${binds.push(value)}`);
   const rows = await db
     .prepare(
-      `SELECT su.*, u.username, u.name, u.avatar_url
-       FROM solution_updates su JOIN users u ON u.id = su.author_id
-       WHERE su.solution_id = ?1
+      `SELECT su.*, author.username, author.name, author.avatar_url
+       FROM solution_updates su JOIN users author ON author.id = su.author_id
+       JOIN solutions s ON s.id = su.solution_id
+       JOIN users u ON u.id = s.owner_id
+       WHERE su.solution_id = ?1 AND ${visible}
        ORDER BY su.created_at DESC, su.rowid DESC
-       LIMIT 200`,
+       LIMIT ?2`,
     )
-    .bind(id)
+    .bind(...binds)
     .all<{ id: string; event_type: UpdateEventType; message: string; changes: string; created_at: string; username: string; name: string; avatar_url: string | null }>();
   return rows.results.map((r) => ({
     id: r.id,
@@ -338,34 +348,21 @@ function safeObject(value: string): Record<string, unknown> {
   }
 }
 
-export async function addProgressUpdate(db: D1Database, viewer: Viewer, id: string, message: string): Promise<SolutionUpdate[]> {
+export async function addProgressUpdate(db: D1Database, viewer: Viewer, id: string, message: string, limit?: number): Promise<SolutionUpdate[]> {
   const { actor } = await loadOwned(db, viewer, id);
   const now = nowIso();
   await db.batch([
     db.prepare(`UPDATE solutions SET updated_at = ?2 WHERE id = ?1`).bind(id, now),
     updateStmt(db, id, actor.userId, 'progress_updated', message, {}, now),
   ]);
-  return listUpdates(db, actor, id);
+  return listUpdates(db, actor, id, limit);
 }
 
 // ---------------------------------------------------------------------------
 // Search
 
-export interface SearchParams {
-  q?: string;
-  status?: Status;
-  /** Restrict to these levels (still intersected with what the viewer may see). */
-  visibility?: Visibility[];
-  types?: string[];
-  industry?: string[];
-  function?: string[];
-  category?: string[];
-  technology?: string[];
-  owner?: string;
-  sort?: 'relevance' | 'updated' | 'created' | 'oldest';
-  page?: number;
-  limit?: number;
-}
+/** Search filters; validated in lib/validation.ts (REST query or MCP tool arguments). */
+export type SearchParams = SearchInput;
 
 export interface SearchResult {
   items: Solution[];

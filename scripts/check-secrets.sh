@@ -37,6 +37,7 @@ check "OpenAI/OpenRouter-style key"       '\bsk-(or-)?[A-Za-z0-9_-]{20,}'
 check "GitHub token"                      '\bgh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,}'
 check "Cloudflare/API token assignment"   '(CLOUDFLARE_API_TOKEN|CF_API_TOKEN|API_KEY|SECRET|PASSWORD|AUTH_TOKEN)[A-Z_]*["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[A-Za-z0-9_./+-]{16,}'
 check "bearer token literal"              'Authorization: *Bearer +[A-Za-z0-9._-]{20,}'
+check "MCP OAuth token literal"           'shmcp_(at|rt)_[A-Za-z0-9_-]{30,}'
 check "session token literal"             'sh_session=[A-Za-z0-9_-]{20,}'
 
 # 3. Personal data: any email address that is not an obvious placeholder (the four fake addresses are unit-test fixtures).

@@ -229,3 +229,249 @@ export function deriveSummary(markdown: string, max = 200): string {
   const lastSpace = cut.lastIndexOf(' ');
   return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:!?-]+$/, '')}…`;
 }
+
+// ---------------------------------------------------------------------------
+// MCP tool arguments. Tools reuse validateSolutionInput/validateUpdateMessage
+// for solution fields; the helpers below cover the rest. Identity never comes
+// from arguments: unknown keys (such as an "owner" on create) are rejected.
+
+export const SORTS = ['relevance', 'updated', 'created', 'oldest'] as const;
+export type Sort = (typeof SORTS)[number];
+
+/** Search filters shared by the REST query string and the MCP search tool. */
+export interface SearchInput {
+  q?: string;
+  status?: Status;
+  visibility?: Visibility[];
+  types?: string[];
+  industry?: string[];
+  function?: string[];
+  category?: string[];
+  technology?: string[];
+  owner?: string;
+  sort?: Sort;
+  page?: number;
+  limit?: number;
+}
+
+/** A reference to one solution: its id, or its owner's username and slug. */
+export type SolutionRef = { id: string } | { username: string; slug: string };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const USERNAME = /^[a-z0-9-]{2,40}$/;
+const SLUG = /^[a-z0-9-]{1,80}$/;
+
+export function toolArgs(raw: unknown, allowed: readonly string[]): Record<string, unknown> {
+  if (raw === undefined || raw === null) return {};
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new AppError('validation_failed', 'Arguments must be an object');
+  const unknown = Object.keys(raw).filter((k) => !allowed.includes(k));
+  if (unknown.length) {
+    throw new AppError('validation_failed', `Unknown argument(s): ${unknown.join(', ')}. Allowed: ${allowed.join(', ') || 'none'}`);
+  }
+  return raw as Record<string, unknown>;
+}
+
+export function intArg(raw: unknown, key: string, min: number, max: number, fallback: number): number {
+  if (raw === undefined || raw === null) return fallback;
+  if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < min || raw > max) {
+    throw new AppError('validation_failed', 'Some fields are invalid', { [key]: `Must be an integer from ${min} to ${max}` });
+  }
+  return raw;
+}
+
+export function usernameArg(raw: unknown, key = 'username'): string {
+  const value = typeof raw === 'string' ? raw.trim().replace(/^@/, '').toLowerCase() : '';
+  if (!USERNAME.test(value)) throw new AppError('validation_failed', 'Some fields are invalid', { [key]: 'Must be a SolutionHub username' });
+  return value;
+}
+
+/**
+ * Parses a solution reference: an id, "username/slug", "/username/slug", a
+ * SolutionHub URL (https://host/username/slug) or solutionhub://solutions/<ref>.
+ */
+export function parseSolutionRef(raw: unknown, key = 'solution', origin?: string): SolutionRef {
+  const invalid = () =>
+    new AppError('validation_failed', 'Some fields are invalid', {
+      [key]: 'Must be a solution id, "username/slug" or a SolutionHub solution URL',
+    });
+  if (typeof raw !== 'string' || !raw.trim() || raw.length > 2048) throw invalid();
+  let value = raw.trim();
+  if (value.startsWith('solutionhub://solutions/')) value = value.slice('solutionhub://solutions/'.length);
+  else if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      if ((origin && url.origin !== origin) || url.username || url.password) throw invalid();
+      value = url.pathname;
+    } catch {
+      throw invalid();
+    }
+  }
+  if (UUID.test(value)) return { id: value.toLowerCase() };
+  const parts = value.replace(/^\/+|\/+$/g, '').split('/');
+  let username: string | undefined;
+  let slug: string | undefined;
+  try {
+    username = decodeURIComponent(parts[0] ?? '').replace(/^@/, '').toLowerCase();
+    slug = decodeURIComponent(parts[1] ?? '').toLowerCase();
+  } catch {
+    throw invalid();
+  }
+  if (parts.length !== 2 || !USERNAME.test(username) || !SLUG.test(slug)) throw invalid();
+  return { username, slug };
+}
+
+function listArg(raw: unknown, key: string, errors: Errors): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const list = cleanTagList(typeof raw === 'string' ? [raw] : raw, 10, LIMITS.tagLength, key, errors);
+  return list?.length ? list : undefined;
+}
+
+export const SEARCH_ARGS = [
+  'query', 'status', 'visibility', 'type', 'category', 'technology', 'industry', 'function', 'owner', 'sort', 'page', 'limit',
+] as const;
+
+/** Validates the search_solutions tool arguments. `me` is the caller's username, for owner: "me". */
+export function validateSearchArgs(raw: unknown, me: string): SearchInput {
+  const b = toolArgs(raw, SEARCH_ARGS);
+  const errors: Errors = {};
+  const q = str(b, 'query', 200, errors);
+  const out: SearchInput = {
+    q: q || undefined,
+    status: oneOf(b, 'status', STATUSES, errors),
+    types: listArg(b.type, 'type', errors),
+    category: listArg(b.category, 'category', errors),
+    technology: listArg(b.technology, 'technology', errors),
+    industry: listArg(b.industry, 'industry', errors),
+    function: listArg(b.function, 'function', errors),
+    sort: oneOf(b, 'sort', SORTS, errors),
+  };
+  const vis = listArg(b.visibility, 'visibility', errors);
+  if (vis?.some((v) => !(VISIBILITIES as readonly string[]).includes(v))) errors.visibility = `Must be any of: ${VISIBILITIES.join(', ')}`;
+  else if (vis) out.visibility = vis as Visibility[];
+  if (out.types?.some((t) => !(SOLUTION_TYPES as readonly string[]).includes(t))) errors.type = `Must be any of: ${SOLUTION_TYPES.join(', ')}`;
+  if (b.owner !== undefined && b.owner !== null) {
+    const owner = typeof b.owner === 'string' ? b.owner.trim().replace(/^@/, '').toLowerCase() : '';
+    if (owner === 'me') out.owner = me;
+    else if (USERNAME.test(owner)) out.owner = owner;
+    else errors.owner = 'Must be a username or "me"';
+  }
+  if (Object.keys(errors).length) throw new AppError('validation_failed', 'Some fields are invalid', errors);
+  out.page = intArg(b.page, 'page', 1, 1000, 1);
+  out.limit = intArg(b.limit, 'limit', 1, 50, 10);
+  for (const key of Object.keys(out) as (keyof SearchInput)[]) if (out[key] === undefined) delete out[key];
+  return out;
+}
+
+export function validateStatus(raw: unknown): Status {
+  if (typeof raw !== 'string' || !(STATUSES as readonly string[]).includes(raw)) {
+    throw new AppError('validation_failed', 'Some fields are invalid', { status: `Must be one of: ${STATUSES.join(', ')}` });
+  }
+  return raw as Status;
+}
+
+export function validateConsentDecision(raw: unknown): { approve: boolean; write: boolean } {
+  const { approve, write } = toolArgs(raw, ['approve', 'write']);
+  if (typeof approve !== 'boolean' || (write !== undefined && typeof write !== 'boolean')) {
+    throw new AppError('validation_failed', 'Submit an explicit consent decision');
+  }
+  return { approve, write: write === true };
+}
+
+// ---------------------------------------------------------------------------
+// OAuth client metadata (dynamic registration and Client ID Metadata Documents)
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+export const isLoopbackHost = (hostname: string) => LOOPBACK_HOSTS.has(hostname.toLowerCase());
+
+/**
+ * OAuth redirect URIs use HTTPS or loopback HTTP for desktop clients.
+ * Return the original string for exact matching.
+ */
+export function validRedirectUri(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value || value.length > 2048 || value !== raw || /[\u0000-\u0020\u007F\\]/.test(value)) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.hash || value.includes('#') || url.username || url.password ||
+      ['code', 'state', 'error', 'error_description', 'iss'].some((key) => url.searchParams.has(key))) return null;
+  if (url.protocol === 'https:' && /^https:\/\//i.test(value) && url.hostname) return value;
+  if (url.protocol === 'http:' && /^http:\/\//i.test(value) && isLoopbackHost(url.hostname)) return value;
+  return null;
+}
+
+export type ClientAuthMethod = 'none' | 'client_secret_post' | 'client_secret_basic';
+
+export interface ClientMetadata {
+  name: string;
+  clientUri: string | null;
+  redirectUris: string[];
+  authMethod: ClientAuthMethod;
+}
+
+/** Thrown as RFC 7591 `invalid_redirect_uri` / `invalid_client_metadata`. */
+export class ClientMetadataError extends Error {
+  readonly code: 'invalid_redirect_uri' | 'invalid_client_metadata';
+  constructor(code: 'invalid_redirect_uri' | 'invalid_client_metadata', message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/** Validates RFC 7591 registration metadata, or a CIMD document (`documentUrl` set). */
+export function validateClientMetadata(body: unknown, documentUrl?: string): ClientMetadata {
+  const fail = (message: string, code: ClientMetadataError['code'] = 'invalid_client_metadata'): never => {
+    throw new ClientMetadataError(code, message);
+  };
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return fail('Metadata must be a JSON object');
+  const b = body as Record<string, unknown>;
+  if (documentUrl !== undefined && b.client_id !== documentUrl) fail('client_id must equal the metadata document URL');
+
+  const uris = b.redirect_uris;
+  if (!Array.isArray(uris) || !uris.length || uris.length > 10) fail('redirect_uris must list 1 to 10 URIs', 'invalid_redirect_uri');
+  const redirectUris = (uris as unknown[]).map((u) => validRedirectUri(u) ?? fail('Redirect URIs must use HTTPS or loopback HTTP', 'invalid_redirect_uri'));
+
+  const rawName = b.client_name;
+  if (rawName !== undefined && typeof rawName !== 'string') fail('client_name must be a string');
+  const name = cleanLine(typeof rawName === 'string' ? rawName : '').slice(0, 100);
+  if (documentUrl !== undefined && !name) fail('client_name is required');
+
+  const clientUri = b.client_uri === undefined || b.client_uri === null ? null : safeHttpUrl(b.client_uri);
+  if (b.client_uri !== undefined && b.client_uri !== null && !clientUri?.startsWith('https://')) fail('client_uri must be an https URL');
+
+  const methods = b.token_endpoint_auth_methods_supported;
+  const publicDocument = documentUrl !== undefined && Array.isArray(methods) && methods.includes('none');
+  const method = publicDocument ? 'none' : (b.token_endpoint_auth_method ?? (documentUrl ? 'none' : 'client_secret_basic'));
+  const allowedMethods: string[] = documentUrl !== undefined ? ['none'] : ['none', 'client_secret_post', 'client_secret_basic'];
+  if (typeof method !== 'string' || !allowedMethods.includes(method)) fail(`token_endpoint_auth_method must be one of: ${allowedMethods.join(', ')}`);
+
+  const grants = b.grant_types ?? ['authorization_code'];
+  if (!Array.isArray(grants) || !grants.includes('authorization_code') ||
+      (documentUrl === undefined && grants.some((g) => g !== 'authorization_code' && g !== 'refresh_token'))) {
+    fail('grant_types must include authorization_code');
+  }
+  const responses = b.response_types ?? ['code'];
+  if (!Array.isArray(responses) || responses.length !== 1 || responses[0] !== 'code') fail('response_types must contain code');
+
+  return {
+    name: name || (redirectUris[0] ? redirectHost(redirectUris[0]) : 'MCP client'),
+    clientUri,
+    redirectUris,
+    authMethod: method as ClientAuthMethod,
+  };
+}
+
+/** A short, human-readable origin for a redirect URI (shown on the consent screen). */
+export function redirectHost(uri: string): string {
+  try {
+    const url = new URL(uri);
+    return url.host || `${url.protocol}//`;
+  } catch {
+    return uri.slice(0, 60);
+  }
+}

@@ -48,8 +48,10 @@ class ApiClient {
     String path, {
     Object? body,
     Map<String, String>? query,
+    String? rawQuery,
   }) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
+    final uri = Uri.parse('$baseUrl$path')
+        .replace(query: rawQuery, queryParameters: query);
     final token = await tokenStore.read();
     final request = http.Request(method, uri)
       ..headers.addAll({
@@ -125,6 +127,38 @@ class ApiClient {
     (await _send('GET', '/api/me') as Map<String, dynamic>)['user']
         as Map<String, dynamic>,
   );
+
+  // --- MCP connector OAuth ---
+
+  Future<Map<String, dynamic>> connectorRequest(String query) async =>
+      await _send('GET', '/api/oauth/authorize', rawQuery: query)
+          as Map<String, dynamic>;
+
+  Future<String> decideConnectorRequest(
+    String query, {
+    required bool approve,
+    required bool write,
+  }) async {
+    final response = await _send(
+      'POST',
+      '/api/oauth/authorize',
+      rawQuery: query,
+      body: {'approve': approve, 'write': write},
+    ) as Map<String, dynamic>;
+    return response['redirectTo'] as String;
+  }
+
+  Future<List<McpConnection>> mcpConnections() async {
+    final response =
+        await _send('GET', '/api/mcp/connections') as Map<String, dynamic>;
+    return (response['items'] as List)
+        .cast<Map<String, dynamic>>()
+        .map(McpConnection.fromJson)
+        .toList();
+  }
+
+  Future<void> changeMcpConnection(String id, {required bool disconnect}) =>
+      _send(disconnect ? 'DELETE' : 'PATCH', '/api/mcp/connections/$id');
 
   // --- users ---
 

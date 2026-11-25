@@ -4,12 +4,14 @@
  */
 import { GoogleTokenVerifier } from './auth/google.ts';
 import { SESSION_TTL_SECONDS, createSession, resolveSession, revokeSession, type SessionClient } from './auth/sessions.ts';
+import { listConnections, makeConnectionReadOnly, revokeConnection } from './auth/oauth.ts';
 import type { Actor, Env } from './env.ts';
 import { assertCsrfSafe, json, readCookie, readJson, sessionCookie, sessionCookieName } from './http.ts';
 import { AppError } from './lib/errors.ts';
 import { enforceMemoryRateLimit, enforceRateLimit } from './lib/ratelimit.ts';
 import { splitList } from './lib/util.ts';
-import { STATUSES, VISIBILITIES, validateSolutionInput, validateUpdateMessage, type Status, type Visibility } from './lib/validation.ts';
+import { STATUSES, VISIBILITIES, validateConsentDecision, validateSolutionInput, validateUpdateMessage, type Status, type Visibility } from './lib/validation.ts';
+import { checkAuthorizationRequest, decideAuthorization, describeAuthorizationRequest, mcpResource } from './oauth.ts';
 import type { Viewer } from './services/access.ts';
 import * as solutions from './services/solutions.ts';
 import { getProfile, upsertGoogleUser, type UserRow } from './services/users.ts';
@@ -100,6 +102,37 @@ route('GET', '/api/me', async ({ env, actor }) => {
   const user = await env.DB.prepare(`SELECT * FROM users WHERE id = ?1`).bind(actor().userId).first<UserRow>();
   if (!user) throw new AppError('unauthorized', 'Not signed in');
   return json({ user: meBody(user) });
+});
+
+// --- MCP connector consent and management -----------------------------------
+
+route('GET', '/api/oauth/authorize', async ({ env, url, request }) => {
+  await enforceRateLimit(env.DB, `oauth-authorize:${clientIp(request)}`, 120, 600);
+  return json(describeAuthorizationRequest(await checkAuthorizationRequest(env, url)));
+}, { auth: 'none' });
+
+route('POST', '/api/oauth/authorize', async ({ env, url, request }) => {
+  if (request.headers.get('origin') !== url.origin) throw new AppError('forbidden', 'Cross-origin request rejected');
+  assertCsrfSafe(request, env);
+  const cookie = readCookie(request, sessionCookieName(request));
+  const actor = cookie ? await resolveSession(env.DB, cookie) : null;
+  if (!actor) throw new AppError('unauthorized', 'Sign in with Google to connect');
+  await enforceRateLimit(env.DB, `oauth-consent:${actor.userId}`, 60, 600);
+  const decision = validateConsentDecision(await readJson(request));
+  const authorization = await checkAuthorizationRequest(env, url);
+  return json({ redirectTo: await decideAuthorization(env.DB, url, actor, authorization, decision.approve, decision.write) });
+}, { auth: 'none' });
+
+route('GET', '/api/mcp/connections', async ({ env, actor, url }) => json({ items: await listConnections(env.DB, actor(), mcpResource(url)) }));
+
+route('DELETE', '/api/mcp/connections/:id', async ({ env, actor, params, url }) => {
+  await revokeConnection(env.DB, actor(), params.id!, mcpResource(url));
+  return new Response(null, { status: 204 });
+});
+
+route('PATCH', '/api/mcp/connections/:id', async ({ env, actor, params, url }) => {
+  await makeConnectionReadOnly(env.DB, actor(), params.id!, mcpResource(url));
+  return new Response(null, { status: 204 });
 });
 
 // --- users -----------------------------------------------------------------
@@ -242,6 +275,9 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     actor = auth.actor;
     if (!actor && match.auth === 'required') throw new AppError('unauthorized', 'Sign in required');
     if (actor && request.method !== 'GET') {
+      if (auth.viaCookie && url.pathname.startsWith('/api/mcp/') && request.headers.get('origin') !== url.origin) {
+        throw new AppError('forbidden', 'Cross-origin request rejected');
+      }
       if (auth.viaCookie) assertCsrfSafe(request, env);
       await enforceRateLimit(env.DB, `write:${actor.userId}`, 360, 600);
     }

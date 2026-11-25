@@ -30,7 +30,7 @@ export const toPublicUser = (u: Pick<UserRow, 'username' | 'name' | 'avatar_url'
 
 /** First path segments the web app uses for its own routes. */
 export const RESERVED_USERNAMES = new Set([
-  'api', 'new', 'explore', 'mcp', 'login', 'logout', 'signin', 'signup', 'settings', 'admin',
+  'api', 'new', 'explore', 'mcp', 'oauth', 'login', 'logout', 'signin', 'signup', 'settings', 'admin',
   'assets', 'canvaskit', 'icons', 'about', 'help', 'search', 'profile', 'me', 'users', 'solutions',
 ]);
 

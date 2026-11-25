@@ -6,12 +6,14 @@ export interface Env {
   GOOGLE_CLIENT_IDS?: string;
   /** Comma-separated extra origins allowed for cross-origin API calls. */
   ALLOWED_ORIGINS?: string;
+  /** Extra reviewed HTTPS Client ID Metadata Document URLs for MCP OAuth. */
+  OAUTH_CLIENT_METADATA_URLS?: string;
 }
 
 /**
  * The authenticated principal performing an operation. Services receive an
  * Actor rather than an HTTP request so that the same business logic can be
- * reused by other transports (e.g. the planned MCP server).
+ * reused by other transports, including MCP.
  */
 export interface Actor {
   userId: string;

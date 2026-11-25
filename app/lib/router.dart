@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'auth/auth_controller.dart';
 import 'pages/explore_page.dart';
+import 'pages/mcp_consent_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/solution_form_page.dart';
@@ -25,7 +26,9 @@ GoRouter buildRouter(AuthController auth) {
       // Browsing is open to everyone (the API only returns what the visitor
       // may see); creating and editing need an account.
       final needsAccount =
-          state.fullPath == '/new' || state.fullPath == '/:username/:slug/edit';
+          state.fullPath == '/new' ||
+          state.fullPath == '/:username/:slug/edit' ||
+          state.fullPath == '/oauth/authorize';
       switch (auth.status) {
         case AuthStatus.unknown:
           return null; // the splash below is shown until the session check finishes
@@ -46,6 +49,13 @@ GoRouter buildRouter(AuthController auth) {
     },
     routes: [
       GoRoute(path: '/signin', builder: (_, _) => const SignInPage()),
+      GoRoute(
+        path: '/oauth/authorize',
+        builder: (_, state) => McpConsentPage(
+          key: ValueKey(state.uri.query),
+          query: state.uri.query,
+        ),
+      ),
       ShellRoute(
         // Listens to auth directly: a redirect-free status change does not
         // rebuild routes, so the splash must swap itself out.

@@ -23,15 +23,33 @@ export function errorResponse(err: unknown): Response {
   return json({ error: { code: 'internal', message: 'Something went wrong' } }, 500);
 }
 
-export async function readJson(request: Request): Promise<unknown> {
-  const type = request.headers.get('content-type') ?? '';
-  if (!type.toLowerCase().startsWith('application/json')) {
-    throw new AppError('bad_request', 'Content-Type must be application/json');
-  }
+export async function readBoundedText(request: Request): Promise<string> {
   const declared = Number(request.headers.get('content-length') ?? 0);
   if (declared > MAX_BODY_BYTES) throw new AppError('payload_too_large', 'Request body is too large');
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) throw new AppError('payload_too_large', 'Request body is too large');
+  const reader = request.body?.getReader();
+  if (!reader) return '';
+  const decoder = new TextDecoder();
+  let text = '';
+  let bytes = 0;
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) return text + decoder.decode();
+      bytes += value.byteLength;
+      if (bytes > MAX_BODY_BYTES) throw new AppError('payload_too_large', 'Request body is too large');
+      text += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+}
+
+export async function readJson(request: Request): Promise<unknown> {
+  const type = request.headers.get('content-type') ?? '';
+  if (!/^application\/json(?:\s*;|$)/i.test(type)) {
+    throw new AppError('bad_request', 'Content-Type must be application/json');
+  }
+  const text = await readBoundedText(request);
   try {
     return JSON.parse(text);
   } catch {

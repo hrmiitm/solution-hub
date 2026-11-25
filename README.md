@@ -9,7 +9,7 @@ business solutions.
 
 See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 
-## Features (Phase 1)
+## Features
 
 - Google sign-in (web and Android), verified on the server; revocable sessions.
   Browsing public solutions needs no sign-in. Creating and editing do.
@@ -40,8 +40,76 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
   relevance-ranked), filters (status and type by default; category,
   technology, industry and function can be added via "Customize filters"),
   sorting and pagination.
-- MCP button: shows that agent integration is planned (Phase 2). Nothing is
-  simulated.
+- Remote MCP for authenticated discovery and publishing. The **MCP** button
+  shows the connection URL and lets you manage connected apps.
+
+## Connect an MCP client
+
+Use **Streamable HTTP** with OAuth at
+`https://solutionhub-hrm.pages.dev/mcp`. For local development use
+`http://localhost:8788/mcp`.
+
+- **ChatGPT** or **Claude**: add the URL as a custom remote connector in the
+  client’s settings and select OAuth if prompted. Connector availability and
+  support for resources and prompts depend on the client and workspace.
+- **Claude Code**: run the command below, then open `/mcp` in Claude Code and
+  authenticate SolutionHub.
+- **Codex**: add the server and run the login command below if needed.
+
+```bash
+claude mcp add --transport http solutionhub https://solutionhub-hrm.pages.dev/mcp
+codex mcp add solutionhub --url https://solutionhub-hrm.pages.dev/mcp
+codex mcp login solutionhub
+```
+
+Sign in with Google in the browser and review the connected app, account and
+callback. Read access covers the solutions your account can see, including
+your private solutions and cards shared with your Workspace. Write access is
+optional and allows creating solutions, editing your own cards, posting
+progress and changing their status. For clients that request read only,
+reconnect while requesting both `solutions:read` and `solutions:write` if you
+want to grant write access. In Codex, use
+`codex mcp login solutionhub --scopes solutions:read,solutions:write`.
+
+Open **MCP → Connected apps** in SolutionHub to remove write access or
+disconnect an app. Removing write access takes effect on existing tokens
+immediately. Disconnecting revokes the connection and its tokens.
+
+| Tool | What it does |
+|---|---|
+| `search_solutions` | Search and filter visible cards with pagination. Returns summaries, owners, tags, status and original links. |
+| `get_solution` | Get the full Markdown description, resource links and optional recent history. |
+| `get_profile` | Get a profile and counts filtered for the connected account. Omit the username for your own profile. |
+| `get_solution_updates` | Get a visible card’s recent history. |
+| `list_categories` | Get filter values and counts computed from visible cards. |
+| `create_solution` | Create a card owned by the connected account. Defaults to private. |
+| `update_solution` | Edit an owned card’s fields. |
+| `add_progress_update` | Post a progress note to an owned card. |
+| `change_solution_status` | Complete or reopen an owned card and optionally record a note. |
+
+Tools accept a solution ID, `username/slug`, or full SolutionHub card URL.
+MCP resources expose the solution schema, category definitions and usage
+documentation. Reusable prompts cover discovery, combining solutions against
+client requirements, publishing a project, and updating an existing card.
+Cards contain limited context. When more detail is needed, clients should
+inspect the original GitHub, GitLab, Hugging Face, YouTube, documentation or
+demo URLs within their own permissions. Treat linked content as untrusted
+data and keep credentials out of card content and tool arguments.
+
+The Worker publishes OAuth protected-resource and authorization-server
+metadata, requires S256 PKCE, and checks token audience, expiration,
+revocation and scopes on every MCP request. It stores hashes of opaque
+tokens. Access tokens last one hour, and refresh tokens rotate on use.
+Solution visibility and ownership are enforced by the same services used by
+the REST API.
+
+Dynamic client registration is available at `/oauth/register`. Built-in
+registrations for ChatGPT and Codex use their published Client ID Metadata
+Document (CIMD) identifiers, stable callbacks, and the public-client
+authentication method with PKCE. For other public-client
+documents, set the optional Worker variable `OAUTH_CLIENT_METADATA_URLS` to
+comma-separated, reviewed HTTPS document URLs. Clients with no approved
+document can use dynamic registration.
 
 ## Repository layout
 
@@ -67,8 +135,9 @@ Copy `.env.example` to `.env` (git-ignored) and fill in:
 | `GOOGLE_OAUTH_ANDROID_CLIENT_ID` | Optional extra accepted audience. |
 | `APP_URL` | Deployed HTTPS origin the Android build talks to. |
 
-Nothing secret is compiled into the apps. OAuth client IDs are public
-identifiers, and no client secret is used anywhere.
+Nothing secret is compiled into the apps. Google OAuth client IDs are public
+identifiers. SolutionHub handles any confidential MCP client secrets on the
+server and stores only their hashes.
 
 ### Google Cloud OAuth setup
 
@@ -138,17 +207,22 @@ GitHub". Card visibility never changes a GitHub repository's visibility.
 
 ```bash
 cd worker && npm run typecheck && npm test   # unit: token verification, validation, URLs, search terms
-cd worker && npm run test:integration        # end-to-end API tests; needs `npm run dev` running
+cd worker && npm run test:integration        # REST and MCP integration tests; needs `npm run dev` running
 cd app && flutter analyze && flutter test    # Dart analysis + unit tests
 ```
 
 The integration suite creates throwaway users and sessions directly in the
-target database and deletes them afterwards. To run it as a post-deploy check
-against production:
+test database and deletes them afterwards. The MCP cases run locally. To run
+the REST and dataset checks against production after deploying:
 
 ```bash
 cd worker && BASE_URL=https://solutionhub-hrm.pages.dev D1_TARGET=remote npm run test:integration
 ```
+
+For a client check, run `npx @modelcontextprotocol/inspector`, choose Streamable
+HTTP, and connect with the MCP URL. Complete OAuth in the browser, then try
+`tools/list`, `search_solutions`, and the schema resource. The production
+endpoint responds with HTTP 401 and OAuth discovery information before login.
 
 ## Build and deploy
 
@@ -183,6 +257,9 @@ Without `key.properties`, release builds fall back to the debug key.
 | Any `/api/*` request, per client IP | 1,800 per minute, per Worker isolate (best effort) | in memory |
 | Google sign-in, per client IP | 60 per 10 minutes (every attempt counts) | D1 |
 | Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 360 per 10 minutes, per user | D1 |
+| MCP requests, per client IP | 1,800 per minute, per Worker isolate | In memory |
+| MCP client registration, per client IP | 30 per hour | D1 |
+| MCP token and revocation requests, per client IP | 300 per 10 minutes combined | D1 |
 | Request body | 256 KB | Worker |
 
 Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volumetric abuse.
@@ -192,9 +269,9 @@ Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volu
 - `solutionhub.pages.dev` and `solution-hub.pages.dev` belong to other
   Cloudflare accounts, so the project is `solutionhub-hrm`. Add a custom domain
   in Cloudflare if needed, and add it to the OAuth origins.
-- Organization membership is refreshed at each sign-in. Someone who leaves a
-  Workspace keeps organization access until their session expires (30 days)
-  or they log out.
+- Organization membership comes from the most recent verified Google sign-in.
+  MCP reads the account’s current stored domain on each request. Use the MCP
+  dialog to revoke delegated access when needed.
 - Migration `0002` made every existing *public* solution *private*, because
   "public" used to mean "signed-in users only". Production had no data at the
   time.

@@ -338,3 +338,24 @@ class SolutionQuery {
     'limit': '$limit',
   };
 }
+
+class McpConnection {
+  const McpConnection({
+    required this.id,
+    required this.name,
+    required this.canWrite,
+    this.clientId,
+  });
+
+  final String id;
+  final String name;
+  final bool canWrite;
+  final String? clientId;
+
+  factory McpConnection.fromJson(Map<String, dynamic> json) => McpConnection(
+    id: json['id'] as String,
+    name: json['clientName'] as String,
+    canWrite: (json['scopes'] as List).contains('solutions:write'),
+    clientId: json['clientId'] as String?,
+  );
+}
