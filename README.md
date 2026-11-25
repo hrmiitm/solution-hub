@@ -72,11 +72,11 @@ codex mcp login solutionhub
 
 Sign in with Google in the browser and review the connected app, account and
 callback. Read access covers the solutions your account can see, including
-your private solutions and cards shared with your Workspace. Write access is
-optional and allows creating solutions, editing your own cards, posting
-progress and changing their status. For clients that request read only,
-reconnect while requesting both `solutions:read` and `solutions:write` if you
-want to grant write access. In Codex, use
+your private solutions, liked solutions and cards shared with your Workspace.
+Write access is optional and allows creating solutions, editing your own cards,
+posting progress, changing their status, and liking or unliking visible solutions.
+For clients that request read only, reconnect while requesting both
+`solutions:read` and `solutions:write` if you want to grant write access. In Codex, use
 `codex mcp login solutionhub --scopes solutions:read,solutions:write`.
 
 Open **Connect to agent → Connected apps** in SolutionHub to remove write access or
@@ -85,7 +85,8 @@ immediately. Disconnecting revokes the connection and its tokens.
 
 | Tool | What it does |
 |---|---|
-| `search_solutions` | Search and filter visible cards with pagination. Returns summaries, owners, tags, status and original links. |
+| `search_solutions` | Search and filter visible cards with pagination. Defaults to newest creation time, then like count on timestamp ties. |
+| `list_liked_solutions` | List visible solutions saved by the connected account, with the same filters and pagination as search. |
 | `get_solution` | Get the full Markdown description, resource links and optional recent history. |
 | `get_profile` | Get a profile and counts filtered for the connected account. Omit the username for your own profile. |
 | `get_solution_updates` | Get a visible card’s recent history. |
@@ -94,7 +95,11 @@ immediately. Disconnecting revokes the connection and its tokens.
 | `update_solution` | Edit an owned card’s fields and optionally explain the change with `changeNote`. |
 | `add_progress_update` | Post a progress note to an owned card. |
 | `change_solution_status` | Complete or reopen an owned card. Use `changeNote` to explain a completion. |
+| `like_solution` | Like and save a visible solution for the connected account. |
+| `unlike_solution` | Remove the connected account’s like from a visible solution. |
 
+Search, liked lists and solution details expose the total `likeCount` and
+the connected account’s `likedByMe` state.
 Tools accept a solution ID, `username/slug`, or full SolutionHub card URL.
 MCP resources expose the solution schema, category definitions and usage
 documentation. Reusable prompts cover discovery, combining solutions against

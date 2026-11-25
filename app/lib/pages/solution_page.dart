@@ -200,41 +200,11 @@ class _SolutionPageState extends State<SolutionPage> {
     }
     final s = _s!;
     final wide = MediaQuery.sizeOf(context).width >= 980;
-    final main = [
-      if (_previewResource(s) case final preview?) ...[
-        Panel(child: ResourcePreview(preview)),
-        const SizedBox(height: 14),
-      ],
-      Panel(
-        title: 'Description',
-        child: (s.descriptionMd ?? '').trim().isEmpty
-            ? Text(
-                'No description.',
-                style: TextStyle(color: context.colors.muted),
-              )
-            : MarkdownView(s.descriptionMd!),
-      ),
-      if (s.resources.isNotEmpty) ...[
-        const SizedBox(height: 14),
-        _ResourcesPanel(solution: s),
-      ],
-      const SizedBox(height: 14),
-      _HistoryPanel(
-        updates: _updates,
-        canPost: s.isOwner,
-        onPost: (msg) async {
-          final updates = await _api.addUpdate(s.id, msg);
-          final fresh = await _api.getSolutionById(s.id);
-          if (mounted) {
-            setState(() {
-              _updates = updates;
-              _s = fresh;
-            });
-          }
-        },
-      ),
-    ];
-    final side = _DetailsPanel(solution: s);
+    final preview = switch (_previewResource(s)) {
+      final resource? => Panel(child: ResourcePreview(resource)),
+      null => null,
+    };
+    final resources = s.resources.isEmpty ? null : _ResourcesPanel(solution: s);
 
     return SingleChildScrollView(
       child: PageBody(
@@ -244,27 +214,46 @@ class _SolutionPageState extends State<SolutionPage> {
           children: [
             _header(s),
             const SizedBox(height: 14),
-            if (wide)
+            if (wide && preview != null && resources != null) ...[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: main,
-                    ),
-                  ),
+                  Expanded(child: preview),
                   const SizedBox(width: 14),
-                  SizedBox(width: 300, child: side),
+                  SizedBox(width: 320, child: resources),
                 ],
-              )
-            else ...[
-              ...main.take(main.length - 1),
+              ),
               const SizedBox(height: 14),
-              side,
-              const SizedBox(height: 14),
-              main.last,
+            ] else ...[
+              if (preview != null) ...[preview, const SizedBox(height: 14)],
+              if (resources != null) ...[resources, const SizedBox(height: 14)],
             ],
+            Panel(
+              title: 'Description',
+              child: (s.descriptionMd ?? '').trim().isEmpty
+                  ? Text(
+                      'No description.',
+                      style: TextStyle(color: context.colors.muted),
+                    )
+                  : MarkdownView(s.descriptionMd!),
+            ),
+            const SizedBox(height: 14),
+            _DetailsPanel(solution: s),
+            const SizedBox(height: 14),
+            _HistoryPanel(
+              updates: _updates,
+              canPost: s.isOwner,
+              onPost: (msg) async {
+                final updates = await _api.addUpdate(s.id, msg);
+                final fresh = await _api.getSolutionById(s.id);
+                if (mounted) {
+                  setState(() {
+                    _updates = updates;
+                    _s = fresh;
+                  });
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -294,18 +283,25 @@ class _SolutionPageState extends State<SolutionPage> {
                   children: [
                     UserAvatar(s.owner, size: 22),
                     const SizedBox(width: 6),
-                    Text(
-                      s.owner.displayName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      ' / ${s.slug}',
-                      style: TextStyle(
-                        color: context.colors.muted,
-                        fontSize: 13,
+                    Flexible(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: s.owner.displayName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' / ${s.slug}',
+                              style: TextStyle(color: context.colors.muted),
+                            ),
+                          ],
+                        ),
+                        style: const TextStyle(fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -529,18 +525,24 @@ class _ResourcesPanelState extends State<_ResourcesPanel> {
                           ),
                         ),
                         if (previewableTypes.contains(r.type))
-                          TextButton(
+                          IconButton(
+                            tooltip: _open.contains(r.url)
+                                ? 'Hide ${r.label} preview'
+                                : 'Preview ${r.label}',
                             onPressed: () => setState(
                               () => _open.contains(r.url)
                                   ? _open.remove(r.url)
                                   : _open.add(r.url),
                             ),
-                            child: Text(
-                              _open.contains(r.url) ? 'Hide' : 'Preview',
+                            icon: Icon(
+                              _open.contains(r.url)
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: 18,
                             ),
                           ),
                         IconButton(
-                          tooltip: 'Open link',
+                          tooltip: 'Open ${r.label}',
                           onPressed: () => openExternal(context, r.url),
                           icon: const Icon(Icons.open_in_new, size: 18),
                         ),
@@ -574,57 +576,70 @@ class _DetailsPanel extends StatelessWidget {
       context.go('/');
     }
 
-    Widget row(String label, Widget child) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: context.colors.muted),
-          ),
-          const SizedBox(height: 4),
-          child,
-        ],
-      ),
-    );
     Widget tags(List<String> values) => TagWrap(values, onTap: search);
+    final fields = <(String, Widget)>[
+      ('Type', Text(capitalize(s.type))),
+      if ((s.client ?? '').isNotEmpty) ('Client', Text(s.client!)),
+      if (s.industry.isNotEmpty) ('Industry', tags(s.industry)),
+      if (s.function.isNotEmpty) ('Function', tags(s.function)),
+      if (s.category.isNotEmpty) ('Solution category', tags(s.category)),
+      if (s.technologies.isNotEmpty) ('Technology', tags(s.technologies)),
+      if (s.keywords.isNotEmpty) ('Keywords', tags(s.keywords)),
+      (
+        'Visibility',
+        Row(
+          children: [
+            Icon(
+              visibilityIcon(s.visibility),
+              size: 15,
+              color: context.colors.muted,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(switch (s.visibility) {
+                SolutionVisibility.public => 'Public — anyone can view',
+                SolutionVisibility.organization =>
+                  'Organization — members of ${s.orgDomain ?? 'the organization'}',
+                SolutionVisibility.private => 'Private — only the owner',
+              }),
+            ),
+          ],
+        ),
+      ),
+    ];
 
     return Panel(
       title: 'Details',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          row('Type', Text(capitalize(s.type))),
-          if ((s.client ?? '').isNotEmpty) row('Client', Text(s.client!)),
-          if (s.industry.isNotEmpty) row('Industry', tags(s.industry)),
-          if (s.function.isNotEmpty) row('Function', tags(s.function)),
-          if (s.category.isNotEmpty) row('Solution category', tags(s.category)),
-          if (s.technologies.isNotEmpty)
-            row('Technology', tags(s.technologies)),
-          if (s.keywords.isNotEmpty) row('Keywords', tags(s.keywords)),
-          row(
-            'Visibility',
-            Row(
-              children: [
-                Icon(
-                  visibilityIcon(s.visibility),
-                  size: 15,
-                  color: context.colors.muted,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 24.0;
+          final width = constraints.maxWidth;
+          final fieldWidth = width >= 640 ? (width - gap) / 2 : width;
+          return Wrap(
+            spacing: gap,
+            runSpacing: 14,
+            children: [
+              for (final (label, value) in fields)
+                SizedBox(
+                  width: fieldWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.colors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      value,
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(switch (s.visibility) {
-                    SolutionVisibility.public => 'Public — anyone can view',
-                    SolutionVisibility.organization =>
-                      'Organization — members of ${s.orgDomain ?? 'the organization'}',
-                    SolutionVisibility.private => 'Private — only the owner',
-                  }),
-                ),
-              ],
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

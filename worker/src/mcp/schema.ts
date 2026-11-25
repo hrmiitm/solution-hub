@@ -92,27 +92,35 @@ const object = (properties: Record<string, Schema>, required: string[] = []) => 
   additionalProperties: false,
 });
 
+const SEARCH_SCHEMA = object({
+  query: {
+    type: 'string',
+    maxLength: 200,
+    description:
+      'Keywords. Case-insensitive partial matching over title, keywords, summary, metadata, owner, client, description and resource URLs. ' +
+      'Every word must match, so prefer 1-3 distinctive words and try synonyms in separate calls. Omit to browse.',
+  },
+  status: { type: 'string', enum: [...STATUSES] },
+  visibility: { type: 'array', items: { type: 'string', enum: [...VISIBILITIES] }, description: 'Only these visibility levels.' },
+  type: { type: 'array', items: { type: 'string', enum: [...SOLUTION_TYPES] } },
+  category: tagList('Match any of these categories (exact, case-insensitive).'),
+  technology: tagList('Match any of these technologies.'),
+  industry: tagList('Match any of these industries.'),
+  function: tagList('Match any of these business functions.'),
+  owner: { type: 'string', maxLength: 40, description: 'Only solutions owned by this username. Use "me" for the connected user.' },
+  sort: {
+    type: 'string', enum: [...SORTS], default: 'created',
+    description: 'Newest creation time first by default, with higher like counts first when timestamps tie. Use relevance for best match.',
+  },
+  page: { type: 'integer', minimum: 1, maximum: 1000, default: 1 },
+  limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+});
+
 export const INPUT_SCHEMAS = {
-  search_solutions: object({
-    query: {
-      type: 'string',
-      maxLength: 200,
-      description:
-        'Keywords. Case-insensitive partial matching over title, keywords, summary, metadata, owner, client, description and resource URLs. ' +
-        'Every word must match, so prefer 1-3 distinctive words and try synonyms in separate calls. Omit to browse.',
-    },
-    status: { type: 'string', enum: [...STATUSES] },
-    visibility: { type: 'array', items: { type: 'string', enum: [...VISIBILITIES] }, description: 'Only these visibility levels.' },
-    type: { type: 'array', items: { type: 'string', enum: [...SOLUTION_TYPES] } },
-    category: tagList('Match any of these categories (exact, case-insensitive).'),
-    technology: tagList('Match any of these technologies.'),
-    industry: tagList('Match any of these industries.'),
-    function: tagList('Match any of these business functions.'),
-    owner: { type: 'string', maxLength: 40, description: 'Only solutions of this username; "me" for the connected user.' },
-    sort: { type: 'string', enum: [...SORTS], description: 'Default: relevance with a query, otherwise most recently updated.' },
-    page: { type: 'integer', minimum: 1, maximum: 1000, default: 1 },
-    limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
-  }),
+  search_solutions: SEARCH_SCHEMA,
+  list_liked_solutions: SEARCH_SCHEMA,
+  like_solution: object({ solution: SOLUTION_REF }, ['solution']),
+  unlike_solution: object({ solution: SOLUTION_REF }, ['solution']),
   get_solution: object(
     {
       solution: SOLUTION_REF,
@@ -173,6 +181,8 @@ export function solutionSchemaDocument(origin: string) {
         properties: { username: { type: 'string' }, name: { type: 'string' }, avatarUrl: { type: ['string', 'null'] }, profileUrl: { type: 'string' } },
       },
       isOwner: { type: 'boolean', readOnly: true, description: 'True when the connected user owns it (and so may modify it, given write access).' },
+      likeCount: { type: 'integer', minimum: 0, readOnly: true, description: 'Total number of users who like this solution.' },
+      likedByMe: { type: 'boolean', readOnly: true, description: 'Whether the connected account likes this solution. Change it with like_solution or unlike_solution.' },
       createdAt: { type: 'string', format: 'date-time', readOnly: true },
       updatedAt: { type: 'string', format: 'date-time', readOnly: true },
       completedAt: { type: ['string', 'null'], format: 'date-time', readOnly: true },

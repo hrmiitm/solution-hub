@@ -208,7 +208,7 @@ class _McpConsentPageState extends State<McpConsentPage> {
         Text('Access to your solutions', style: text.titleMedium),
         const SizedBox(height: 8),
         const Text(
-          'Read solutions you can view, including your private solutions and those shared with your organization.',
+          'Read solutions you can view, including the ones you’ve liked and your private or organization solutions.',
         ),
         if (request['writeRequested'] == true) ...[
           const SizedBox(height: 12),
@@ -225,7 +225,7 @@ class _McpConsentPageState extends State<McpConsentPage> {
                   : (value) => setState(() => _write = value),
               title: const Text('Allow changes'),
               subtitle: const Text(
-                'Create solutions and edit, post updates, or change status on solutions you own.',
+                'Create solutions. Edit, post updates, or change status on solutions you own. Like or unlike solutions you can view.',
               ),
             ),
           ),

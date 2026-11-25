@@ -10,7 +10,7 @@ import { assertCsrfSafe, json, readCookie, readJson, sessionCookie, sessionCooki
 import { AppError } from './lib/errors.ts';
 import { enforceMemoryRateLimit, enforceRateLimit } from './lib/ratelimit.ts';
 import { splitList } from './lib/util.ts';
-import { STATUSES, VISIBILITIES, validateConsentDecision, validateSolutionInput, validateUpdateMessage, type Status, type Visibility } from './lib/validation.ts';
+import { SORTS, STATUSES, VISIBILITIES, validateConsentDecision, validateSolutionInput, validateUpdateMessage, type Status, type Visibility } from './lib/validation.ts';
 import { checkAuthorizationRequest, decideAuthorization, describeAuthorizationRequest, mcpResource } from './oauth.ts';
 import type { Viewer } from './services/access.ts';
 import * as solutions from './services/solutions.ts';
@@ -241,7 +241,7 @@ function searchParams(url: URL): solutions.SearchParams {
     function: listParam(url, 'function'),
     category: listParam(url, 'category'),
     technology: listParam(url, 'technology'),
-    sort: ['relevance', 'updated', 'created', 'oldest'].includes(sort ?? '') ? (sort as solutions.SearchParams['sort']) : 'created',
+    sort: SORTS.find((value) => value === sort),
     page: Number.parseInt(q.get('page') ?? '1', 10) || 1,
     limit: Number.parseInt(q.get('limit') ?? '24', 10) || 24,
   };

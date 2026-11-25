@@ -12,7 +12,7 @@ export const RESOURCES = [
     uri: 'solutionhub://docs/solution-schema',
     name: 'solution-schema',
     title: 'Solution schema',
-    description: 'Fields, visibility, resource links and history events on a solution card.',
+    description: 'Fields, visibility, resource links, likes and history events on a solution card.',
     mimeType: 'application/schema+json',
     text: (origin: string) => JSON.stringify(solutionSchemaDocument(origin), null, 2),
   },
@@ -40,8 +40,10 @@ export const RESOURCES = [
     title: 'Using SolutionHub',
     description: 'Discovery, references, publishing and connector permissions.',
     mimeType: 'text/plain',
-    text: () => `${INSTRUCTIONS}\n\nSearch is paginated. Use get_solution for the full description and get_solution_updates for recent history. ` +
-      'Tools accept solution IDs, username/slug references or full SolutionHub URLs. Connector write consent is required to create or change solutions. ' +
+    text: () => `${INSTRUCTIONS}\n\nSearch is paginated and defaults to newest creation time, with likes breaking timestamp ties. ` +
+      'Use get_solution for the full description and get_solution_updates for recent history. Cards include the total like count and whether the connected account liked them. ' +
+      'Use list_liked_solutions to see the connected account’s saved cards. Use like_solution or unlike_solution when the user asks to change a like. ' +
+      'Tools accept solution IDs, username/slug references or full SolutionHub URLs. Connector write consent is required to create or change solutions and to like or unlike them. ' +
       'New cards default to private. The SolutionHub MCP dialog lets you remove write access or disconnect a client.',
   },
 ];
@@ -53,7 +55,7 @@ export const PROMPTS = [
     description: 'Find and verify solutions for a topic or problem.',
     argument: 'topic',
     argumentDescription: 'Problem, technology or topic to explore.',
-    text: 'Search for relevant solutions using distinctive keywords and synonyms. Read promising cards and inspect their original resources where permitted. Cite SolutionHub and original URLs and summarize relevance and gaps.',
+    text: 'Search for relevant solutions using distinctive keywords and synonyms. Use sort "relevance" for best matches. Read promising cards and inspect their original resources where permitted. Cite SolutionHub and original URLs and summarize relevance and gaps.',
   },
   {
     name: 'combine_solutions',

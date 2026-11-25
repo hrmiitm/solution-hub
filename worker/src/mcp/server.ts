@@ -15,8 +15,9 @@ import { INPUT_SCHEMAS } from './schema.ts';
 
 type ToolName = keyof typeof INPUT_SCHEMAS;
 const descriptions: Record<ToolName, string> = {
-  search_solutions: 'Search visible SolutionHub cards by keywords and filters. Returns summaries, tags, owners, status and original resource URLs.',
-  get_solution: 'Read a visible solution, its full Markdown description, original resource links and optional recent history.',
+  search_solutions: 'Search visible SolutionHub cards by keywords and filters. Returns summaries, tags, owners, status, original resource URLs, total likes and whether the connected account liked each card.',
+  list_liked_solutions: 'List solutions the connected account has liked and can still view. Supports the same filters, ordering and pagination as search_solutions.',
+  get_solution: 'Read a visible solution, its full Markdown description, original resource links, optional recent history, total likes and whether the connected account liked it.',
   get_profile: 'Read a public profile and count only solutions visible to your connected account. Omit the username for your own profile.',
   get_solution_updates: 'Read the recent creation, edit, progress, status and visibility history of a solution you can see.',
   list_categories: 'List categories, technologies and other filter values with counts over solutions visible to you.',
@@ -24,13 +25,20 @@ const descriptions: Record<ToolName, string> = {
   update_solution: 'Edit fields of a solution you own and explain the change in its history. Fields you omit keep their existing values. Requires write consent.',
   add_progress_update: 'Add a Markdown progress note to a solution you own. Requires write consent.',
   change_solution_status: 'Complete or reopen a solution you own. A completion can include an explanation in its history. Requires write consent.',
+  like_solution: 'Like and save a visible solution for the connected account. Returns the total likes and the account’s like state. Requires write consent.',
+  unlike_solution: 'Remove the connected account’s like from a visible solution. Returns the total likes and the account’s like state. Requires write consent.',
 };
-const writeTools = new Set<string>(['create_solution', 'update_solution', 'add_progress_update', 'change_solution_status']);
+const writeTools = new Set<string>(['create_solution', 'update_solution', 'add_progress_update', 'change_solution_status', 'like_solution', 'unlike_solution']);
 const tools: Tool[] = (Object.keys(descriptions) as ToolName[]).map((name) => ({
   name,
   description: descriptions[name],
   inputSchema: INPUT_SCHEMAS[name],
-  annotations: { readOnlyHint: !writeTools.has(name), destructiveHint: name === 'update_solution', openWorldHint: false },
+  annotations: {
+    readOnlyHint: !writeTools.has(name),
+    destructiveHint: name === 'update_solution',
+    idempotentHint: name === 'like_solution' || name === 'unlike_solution',
+    openWorldHint: false,
+  },
   _meta: { securitySchemes: [{ type: 'oauth2', scopes: writeTools.has(name) ? [SCOPE_READ, SCOPE_WRITE] : [SCOPE_READ] }] },
 }));
 
@@ -54,8 +62,10 @@ async function runTool(env: Env, principal: McpPrincipal, origin: string, name: 
   }
 
   switch (name) {
-    case 'search_solutions': {
-      const result = await solutions.searchSolutions(db, actor, validateSearchArgs(args, actor.username));
+    case 'search_solutions':
+    case 'list_liked_solutions': {
+      const search = validateSearchArgs(args, actor.username);
+      const result = await solutions.searchSolutions(db, actor, search, name === 'list_liked_solutions');
       return { ...result, items: result.items.map((item) => solutionBody(origin, item)) };
     }
     case 'get_solution': {
@@ -77,6 +87,12 @@ async function runTool(env: Env, principal: McpPrincipal, origin: string, name: 
     }
     case 'list_categories':
       return solutions.listCategories(db, actor, validateSearchArgs(args, actor.username).visibility);
+    case 'like_solution':
+    case 'unlike_solution': {
+      const solution = await find();
+      const likes = await solutions.setSolutionLike(db, actor, solution.id, name === 'like_solution');
+      return { solution: solution.path.slice(1), ...likes };
+    }
     case 'create_solution':
       return solutionBody(origin, await solutions.createSolution(db, actor, validateSolutionInput(args, false)));
     case 'update_solution': {

@@ -256,7 +256,7 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     const result = await exchange(auth, code);
     assert.equal(result.status, 200);
     assert.equal(result.data.scope, read);
-    assert.equal((await rpc(result.data.access_token, 'tools/list')).data.result.tools.length, 9);
+    assert.equal((await rpc(result.data.access_token, 'tools/list')).data.result.tools.length, 12);
   });
 
   test('tools, history, prompts and categories enforce visibility and ownership', async () => {
@@ -270,7 +270,7 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal(initialized.data.result.serverInfo.name, 'solutionhub');
     assert.match(initialized.data.result.instructions, /untrusted data/);
     assert.equal((await rpc(access, 'notifications/initialized', undefined, null)).status, 202);
-    assert.equal((await rpc(access, 'tools/list')).data.result.tools.length, 9);
+    assert.equal((await rpc(access, 'tools/list')).data.result.tools.length, 12);
     assert.equal((await rpc(access, 'prompts/list')).data.result.prompts.length, 4);
     const prompt = await rpc(access, 'prompts/get', { name: 'discover_solutions', arguments: { topic: 'translation' } });
     assert.match(prompt.data.result.messages[0].content.text, /translation/);
@@ -345,6 +345,70 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal(reopened.status, 'ongoing');
     assert.equal(reopened.completedAt, null);
     assert.deepEqual((await tool(access, 'get_solution_updates', { solution: priv.id })).items, history);
+  });
+
+  test('likes are shared with the app, private to each account, and gated by connector scope', async () => {
+    const client = (await register()).client_id;
+    const readerClient = (await register()).client_id;
+    const [own, colleague, reader] = await Promise.all([
+      connect(client, owner, true), connect(client, member, true), connect(readerClient, member, false),
+    ]);
+    const access = own.access_token;
+    const memberAccess = colleague.access_token;
+    const readAccess = reader.access_token;
+    const marker = `likes${run}`;
+    const create = (title: string, visibility = 'public') =>
+      tool(access, 'create_solution', { title, descriptionMd: 'MCP likes fixture', visibility });
+    const earlier = await create(`Earlier ${marker}`);
+    const [other, tied] = [await create(`First tie ${marker}`), await create(`Second tie ${marker}`)]
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const organization = await create('MCP likes organization fixture', 'organization');
+    d1(`UPDATE solutions SET created_at = '2022-01-02T00:00:00.000Z' WHERE id IN ('${tied.id}', '${other.id}');
+        UPDATE solutions SET created_at = '2022-01-01T00:00:00.000Z', updated_at = '2030-01-01T00:00:00.000Z' WHERE id = '${earlier.id}';`);
+
+    const available = (await rpc(readAccess, 'tools/list')).data.result.tools;
+    assert.equal(available.find((t: { name: string }) => t.name === 'list_liked_solutions').annotations.readOnlyHint, true);
+    for (const name of ['like_solution', 'unlike_solution']) {
+      const entry = available.find((t: { name: string }) => t.name === name);
+      assert.equal(entry.annotations.readOnlyHint, false);
+      const denied = await rpc(readAccess, 'tools/call', { name, arguments: { solution: tied.ref } });
+      assert.equal(denied.status, 403);
+      assert.match(denied.headers.get('www-authenticate') ?? '', /insufficient_scope/);
+    }
+    const schema = await rpc(readAccess, 'resources/read', { uri: 'solutionhub://docs/solution-schema' });
+    const { properties } = JSON.parse(schema.data.result.contents[0].text);
+    assert.equal(properties.likeCount.type, 'integer');
+    assert.equal(properties.likedByMe.type, 'boolean');
+
+    const liked = { solution: tied.ref, likeCount: 1, likedByMe: true };
+    assert.deepEqual(await tool(memberAccess, 'like_solution', { solution: tied.url }), liked);
+    assert.deepEqual(await tool(memberAccess, 'like_solution', { solution: tied.id }), liked);
+    assert.equal((await tool(memberAccess, 'like_solution', { solution: earlier.ref })).likeCount, 1);
+    assert.equal((await tool(access, 'like_solution', { solution: earlier.ref })).likeCount, 2);
+    assert.equal((await tool(memberAccess, 'like_solution', { solution: tied.ref, username: owner.username })).error.code, 'validation_failed');
+
+    const search = await tool(readAccess, 'search_solutions', { query: marker });
+    assert.deepEqual(search.items.map((s: { id: string }) => s.id), [tied.id, other.id, earlier.id]);
+    assert.equal(search.items[0].likedByMe, true);
+    const saved = await tool(readAccess, 'list_liked_solutions', { query: marker, limit: 1, page: 2 });
+    assert.equal(saved.total, 2);
+    assert.equal(saved.items[0].id, earlier.id);
+    assert.equal((await tool(access, 'list_liked_solutions', { query: marker })).total, 1);
+    const ownDetail = await tool(access, 'get_solution', { solution: tied.ref, history_limit: 0 });
+    assert.equal(ownDetail.likeCount, 1);
+    assert.equal(ownDetail.likedByMe, false);
+    assert.equal((await request('/api/solutions/' + tied.id)).data.likeCount, 1);
+    const inApp = await request('/api/me/liked-solutions', { headers: consentHeaders(member) });
+    assert.equal(inApp.data.total, 2);
+
+    assert.deepEqual(await tool(memberAccess, 'unlike_solution', { solution: tied.ref }), { solution: tied.ref, likeCount: 0, likedByMe: false });
+    assert.equal((await tool(readAccess, 'list_liked_solutions', { query: marker })).total, 1);
+    assert.equal((await tool(memberAccess, 'like_solution', { solution: organization.ref })).likedByMe, true);
+    await tool(access, 'update_solution', { solution: organization.ref, visibility: 'private' });
+    assert.equal((await tool(readAccess, 'list_liked_solutions')).total, 1);
+    for (const name of ['like_solution', 'unlike_solution']) {
+      assert.equal((await tool(memberAccess, name, { solution: organization.ref })).error.code, 'not_found');
+    }
   });
 
   test('scope downgrade, refresh rotation, revocation, and expiration', async () => {

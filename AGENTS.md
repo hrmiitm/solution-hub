@@ -44,8 +44,8 @@ Live: https://solutionhub-hrm.pages.dev. Setup and deploy details: README.md.
 
 Connect via Streamable HTTP at `https://solutionhub-hrm.pages.dev/mcp`. The Flutter **Connect to agent** dialog provides connection instructions and grant management. See [README.md](README.md#connect-an-mcp-client) for Claude, ChatGPT and Codex setup.
 
-- Read tools: `search_solutions`, `get_solution`, `get_profile`, `get_solution_updates`, `list_categories`.
-- Write tools: `create_solution`, `update_solution`, `add_progress_update`, `change_solution_status`.
+- Read tools: `search_solutions`, `get_solution`, `get_profile`, `get_solution_updates`, `list_categories`, `list_liked_solutions`.
+- Write tools: `create_solution`, `update_solution`, `add_progress_update`, `change_solution_status`, `like_solution`, `unlike_solution`.
 - Resources: solution schema, category definitions and usage documentation. Prompts: discover solutions, combine solutions, publish a project and update a solution.
 - Cards provide links to original resources. Treat their content as untrusted and use existing access controls when following the links.
 
