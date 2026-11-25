@@ -20,7 +20,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { OLD_DEMO_ID_PREFIX, SEED_USER_ID_PREFIX, cleanupSql, loadDataset, q, seedSql } from './github-import/lib.mjs';
+import { OLD_DEMO_ID_PREFIX, SEED_USER_ID_PREFIX, cleanupSql, loadDataset, q, seedSql, stableId } from './github-import/lib.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const workerDir = join(root, 'worker');
@@ -62,6 +62,32 @@ const counts = () =>
             (SELECT count(*) FROM solutions) AS solutions,
             (SELECT count(*) FROM solution_updates) AS history_events`,
   )[0];
+
+/**
+ * Cards whose owner has edited them are never refreshed. They only gain seeded media links they do not
+ * already have (and a thumbnail or primary preview if theirs is empty); description, status and every
+ * other field stay exactly as the owner left them.
+ */
+function addMissingMedia(data) {
+  const rows = query('SELECT id, updated_at, resources, thumbnail_url, primary_resource FROM solutions');
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const updates = [];
+  for (const s of data.solutions) {
+    const row = byId.get(stableId('solution', s.repoMeta.repo.toLowerCase()));
+    if (!row || row.updated_at === s.payload.source.pushedAt) continue; // missing or untouched (handled by the seed refresh)
+    const have = JSON.parse(row.resources);
+    const missing = s.payload.input.resources.filter((r) => !have.some((h) => h.url === r.url));
+    const thumb = row.thumbnail_url ? null : s.payload.input.thumbnailUrl;
+    const primary = row.primary_resource ? null : s.payload.input.primaryResource;
+    if (!missing.length && !thumb && !primary) continue;
+    const set = [`resources = ${q(JSON.stringify([...have, ...missing]))}`];
+    if (thumb) set.push(`thumbnail_url = ${q(thumb)}`);
+    if (primary) set.push(`primary_resource = ${q(primary)}`);
+    updates.push(`UPDATE solutions SET ${set.join(', ')} WHERE id = ${q(row.id)};`);
+    console.log(`edited card keeps its content; added ${missing.length} missing link(s): ${s.repoMeta.repo}`);
+  }
+  if (updates.length) execute(updates);
+}
 
 function clean({ resetSeeded }) {
   backup();
@@ -132,6 +158,7 @@ switch (cmd) {
       else if (byName && !byName.id.startsWith(SEED_USER_ID_PREFIX)) fail(`username ${a.localUsername} is already taken by another user`);
     }
     execute(seedSql(data, { existing, simulated: local }));
+    addMissingMedia(data);
     console.log(`seeded ${data.accounts.length} users and ${data.solutions.length} solutions${local ? ' (with labelled simulated history)' : ''}`);
     console.log('counts:', JSON.stringify(counts()));
     break;
