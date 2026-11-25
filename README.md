@@ -9,6 +9,30 @@ business solutions.
 
 See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 
+## How it fits together
+
+One Cloudflare Worker serves the Flutter web app, the REST API, the OAuth
+endpoints and the MCP server. Every interface is a thin adapter over the same
+services, so visibility and ownership rules live in one place.
+
+```
+Flutter web (cookie) ─┐
+Android (bearer)  ────┼─> api.ts (REST /api/*) ──┐
+MCP clients (OAuth) ──┴─> mcp/server.ts (/mcp) ──┼─> services/*.ts ─> services/access.ts ─> D1
+                          oauth.ts (/oauth/*) ───┘   (business rules)  (who may see/change)
+```
+
+## Quick start
+
+```bash
+cp .env.example .env                                   # add your Google OAuth web client ID
+(cd worker && npm install && npm run db:migrate:local)
+scripts/dev-env.sh && node scripts/seed.mjs            # local config + sample data
+scripts/build.sh web && (cd worker && npm run dev)     # http://localhost:8788
+```
+
+Details are under [Local development](#local-development).
+
 ## Features
 
 - Google sign-in (web and Android), verified on the server; revocable sessions.
@@ -353,3 +377,8 @@ users) share the per-IP limits. Raise `RATE_LIMIT_AUTH` if that happens.
 - Embeds depend on the remote host. Sites that forbid framing or cross-origin
   reads show a fallback link instead.
 - Slugs stay the same when a title changes, so shared links keep working.
+
+## License
+
+No license has been chosen yet. Until one is added, all rights are reserved
+and the code is published for viewing only.
