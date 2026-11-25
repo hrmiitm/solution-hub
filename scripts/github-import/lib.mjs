@@ -49,10 +49,13 @@ function blobUrl(repo, link) {
 }
 
 export function buildPayload(s, repo) {
-  const resources = [{ label: 'GitHub repository', url: repo.url, type: 'repository' }];
+  // URLs are normalised exactly as the API's validation does (URL.toString), so primary/thumbnail match a resource.
+  const norm = (u) => new URL(u).toString();
+  const resources = [{ label: 'GitHub repository', url: norm(repo.url), type: 'repository' }];
   for (const l of s.links ?? []) {
-    resources.push({ label: l.label, url: l.url ?? blobUrl(repo, l), type: l.type });
+    resources.push({ label: l.label, url: norm(l.url ?? blobUrl(repo, l)), type: l.type });
   }
+  if (s.primary && !resources.some((r) => r.url === norm(s.primary))) throw new Error(`${s.repo}: primary preview is not one of its resources`);
   const licence = repo.license && repo.license !== 'NOASSERTION' ? ` · ${repo.license} licence` : '';
   const sections = [
     `> **Imported from GitHub:** [${repo.repo}](${repo.url}) · created ${day(repo.createdAt)} · last pushed ${day(repo.pushedAt)}${licence}`,
@@ -74,6 +77,8 @@ export function buildPayload(s, repo) {
       technologies: s.technologies,
       keywords: s.keywords,
       resources,
+      thumbnailUrl: s.thumbnail ? norm(s.thumbnail) : null,
+      primaryResource: s.primary ? norm(s.primary) : null,
       visibility: s.visibility,
     },
     source: {
@@ -187,13 +192,15 @@ export function seedSql(data = loadDataset(), { existing = {}, simulated = false
     const p = s.payload.input;
     lines.push(
       `INSERT OR IGNORE INTO solutions (id, owner_id, title, slug, summary, description_md, client, type, industry, function, category, technologies, keywords, resources, thumbnail_url, primary_resource, visibility, status, created_at, updated_at, completed_at) VALUES (` +
-        [id, ownerId, p.title, slugify(p.title), p.summary, p.descriptionMd, null, p.type, '[]', '[]', JSON.stringify(p.category), JSON.stringify(p.technologies), JSON.stringify(p.keywords), JSON.stringify(p.resources), null, null, p.visibility, status, createdAt, updatedAt, completedAt].map(q).join(', ') +
+        [id, ownerId, p.title, slugify(p.title), p.summary, p.descriptionMd, null, p.type, '[]', '[]', JSON.stringify(p.category), JSON.stringify(p.technologies), JSON.stringify(p.keywords), JSON.stringify(p.resources), p.thumbnailUrl, p.primaryResource, p.visibility, status, createdAt, updatedAt, completedAt].map(q).join(', ') +
         `);`,
     );
-    // Rows seeded by an earlier run of this script (all 'ongoing') are corrected in place, but only while still
-    // untouched: any edit by the owner bumps updated_at, which makes this a no-op.
-    if (initial === 'completed' && !simulated) {
-      lines.push(`UPDATE solutions SET status = 'completed', completed_at = ${q(pushedAt)} WHERE id = ${q(id)} AND status = 'ongoing' AND updated_at = ${q(pushedAt)};`);
+    // Rows seeded by an earlier run are refreshed in place (status, media), but only while still untouched: any
+    // edit by the owner bumps updated_at, which makes this a no-op. Local runs insert fresh rows instead.
+    if (!simulated) {
+      lines.push(
+        `UPDATE solutions SET status = ${q(status)}, completed_at = ${q(completedAt)}, resources = ${q(JSON.stringify(p.resources))}, thumbnail_url = ${q(p.thumbnailUrl)}, primary_resource = ${q(p.primaryResource)} WHERE id = ${q(id)} AND updated_at = ${q(pushedAt)};`,
+      );
     }
     events.forEach(([at, type, message, changes], i) => {
       lines.push(

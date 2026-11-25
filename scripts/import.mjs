@@ -2,6 +2,7 @@
 // Initial database population from the GitHub-repository dataset (scripts/github-import/). Reusable and idempotent.
 //
 //   node scripts/import.mjs validate                      dataset checks (no database)
+//   node scripts/import.mjs check-links                   fetch every resource/thumbnail URL in the dataset (network; run before seeding)
 //   node scripts/import.mjs backup [--target local|remote]
 //   node scripts/import.mjs clean  [--target local|remote]   backup, then remove the old fictional demo users and their solutions
 //   node scripts/import.mjs seed   [--target local|remote]   backup, clean, then create the 4 users and 33 solutions
@@ -80,6 +81,29 @@ switch (cmd) {
   case 'validate':
     console.log(`dataset OK: ${loadDataset().solutions.length} solutions`);
     break;
+  case 'check-links': {
+    const urls = new Map();
+    for (const s of loadDataset().solutions) {
+      for (const r of s.payload.input.resources) urls.set(r.url, s.repoMeta.repo);
+      if (s.payload.input.thumbnailUrl) urls.set(s.payload.input.thumbnailUrl, s.repoMeta.repo);
+    }
+    let bad = 0;
+    await Promise.all(
+      [...urls].map(async ([url, repo]) => {
+        try {
+          const res = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 solutionhub-link-check', range: 'bytes=0-0' }, signal: AbortSignal.timeout(25_000) });
+          // 405 is how MCP endpoints answer a plain GET; they are not listed as resources anyway.
+          if (res.status >= 400) throw new Error(`HTTP ${res.status}`);
+        } catch (e) {
+          bad++;
+          console.log(`BROKEN  ${repo}  ${url}  (${e.message})`);
+        }
+      }),
+    );
+    console.log(`${urls.size} URLs checked, ${bad} broken`);
+    if (bad) process.exit(1);
+    break;
+  }
   case 'backup':
     backup();
     break;

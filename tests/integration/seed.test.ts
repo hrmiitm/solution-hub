@@ -162,6 +162,19 @@ describe('initial status: at most two Ongoing per user, the latest ones', () => 
   });
 });
 
+describe('media on cards', () => {
+  test('most cards have images, documents or videos; thumbnails and previews come through the API', async () => {
+    const all = (await api(null, 'GET', '/api/solutions?limit=50')).body.items as { id: string; thumbnailUrl: string | null; primaryResource: string | null; resources: { type: string; url: string }[] }[];
+    const withMedia = all.filter((s) => s.resources.some((r) => ['youtube', 'image', 'pdf'].includes(r.type)));
+    assert.ok(withMedia.length / all.length >= 0.6, `${withMedia.length}/${all.length} public cards have media`);
+    const tools = all.find((s) => s.resources.some((r) => r.url.includes('sanand0/tools')) && s.thumbnailUrl)!;
+    assert.match(tools.thumbnailUrl!, /^https:\/\/raw\.githubusercontent\.com\/sanand0\/tools\//);
+    assert.ok(tools.resources.some((r) => r.url === tools.primaryResource), 'primary preview is one of the resources');
+    const yt = all.find((s) => s.primaryResource?.startsWith('https://www.youtube.com/watch'))!;
+    assert.equal(yt.resources.find((r) => r.url === yt.primaryResource)!.type, 'youtube');
+  });
+});
+
 describe('all users are equal: only owners edit and delete', () => {
   test('there is no admin or privileged surface, and /api/me carries no role', async () => {
     for (const p of ['/api/admin', '/api/admin/users', '/api/me/imports']) assert.equal((await api(anand, 'GET', p)).status, 404, p);

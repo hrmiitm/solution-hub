@@ -56,7 +56,7 @@ route(
   'POST',
   '/api/auth/google',
   async ({ request, env }) => {
-    await enforceRateLimit(env.DB, `auth:${clientIp(request)}`, 20, 600);
+    await enforceRateLimit(env.DB, `auth:${clientIp(request)}`, 60, 600);
     const body = (await readJson(request)) as { idToken?: unknown; client?: unknown };
     const client: SessionClient = body.client === 'native' ? 'native' : 'web';
     // Web logins set a cookie, so they get the same origin checks as other
@@ -219,7 +219,7 @@ async function authenticate(request: Request, env: Env): Promise<{ actor: Actor 
 
 export async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  enforceMemoryRateLimit(`ip:${clientIp(request)}`, 600, 60);
+  enforceMemoryRateLimit(`ip:${clientIp(request)}`, 1800, 60);
 
   const candidates = routes.filter((r) => r.pattern.test(url.pathname));
   if (!candidates.length) throw new AppError('not_found', 'Endpoint not found');
@@ -243,7 +243,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     if (!actor && match.auth === 'required') throw new AppError('unauthorized', 'Sign in required');
     if (actor && request.method !== 'GET') {
       if (auth.viaCookie) assertCsrfSafe(request, env);
-      await enforceRateLimit(env.DB, `write:${actor.userId}`, 120, 600);
+      await enforceRateLimit(env.DB, `write:${actor.userId}`, 360, 600);
     }
   }
 

@@ -50,8 +50,8 @@ test('URLs are valid; no emails, secrets or unreachable links; the fork keeps at
 
 test('seed SQL is idempotent by construction and keeps simulated history local-only and labelled', () => {
   const sql = seedSql(data);
-  assert.ok(sql.every((l: string) => l.startsWith('INSERT OR IGNORE') || l.startsWith('UPDATE solutions SET status')), 'inserts are INSERT OR IGNORE; the only update is the guarded status correction');
-  assert.ok(sql.filter((l: string) => l.startsWith('UPDATE')).every((l: string) => /AND status = 'ongoing' AND updated_at = /.test(l)), 'the correction never touches edited rows');
+  assert.ok(sql.every((l: string) => l.startsWith('INSERT OR IGNORE') || l.startsWith('UPDATE solutions SET status')), 'inserts are INSERT OR IGNORE; the only update is the guarded refresh');
+  assert.ok(sql.filter((l: string) => l.startsWith('UPDATE')).every((l: string) => / WHERE id = '[^']+' AND updated_at = '[^']+';$/.test(l)), 'the refresh never touches rows the owner has edited');
   assert.equal(sql.filter((l: string) => l.includes('INTO solutions')).length, 33);
   assert.ok(!sql.join('\n').includes('simulated'), 'production seed has no simulated history');
   const local = seedSql(data, { simulated: true }).join('\n');
@@ -73,4 +73,34 @@ test('at most two solutions per user start Ongoing: the most recently pushed one
   assert.equal((sql.match(/'ongoing', '20\d\d-[^']*', '20\d\d-[^']*', NULL\);/g) ?? []).length, 8, 'eight ongoing rows have no completion date');
   assert.equal((sql.match(/Marked completed in the initial data/g) ?? []).length, 25);
   assert.ok(seedSql(data, { simulated: true }).length > 0, 'simulated sequences fit the initial states');
+});
+
+const isMedia = (r: { type: string; url: string }) =>
+  ['youtube', 'image', 'pdf', 'slides'].includes(r.type) || /(^|\.)(youtube\.com|youtu\.be)$/.test(new URL(r.url).hostname) || (r.type === 'documentation' && new URL(r.url).hostname.endsWith('anthropic.com'));
+
+test('at least 70% of solutions carry an image, document, video or slides; previews and thumbnails are consistent', () => {
+  const withMedia = data.solutions.filter((s: any) => s.payload.input.resources.some(isMedia));
+  assert.ok(withMedia.length / data.solutions.length >= 0.7, `${withMedia.length}/${data.solutions.length}`);
+  for (const s of data.solutions) {
+    const { resources, primaryResource, thumbnailUrl } = s.payload.input;
+    if (primaryResource) assert.ok(resources.some((r: any) => r.url === primaryResource), `${s.repo}: primary must be one of its resources`);
+    if (thumbnailUrl) {
+      const r = resources.find((x: any) => x.url === thumbnailUrl);
+      assert.equal(r?.type, 'image', `${s.repo}: thumbnail must be one of its image resources`);
+    }
+    for (const r of resources) {
+      assert.equal(r.url, new URL(r.url).toString(), `${s.repo}: URL not normalised`);
+      assert.ok(r.label.length > 0 && r.label.length <= 100);
+    }
+    assert.ok(resources.length <= 20);
+  }
+});
+
+test('YouTube resources are real watch URLs and papers are arXiv PDFs', () => {
+  for (const s of data.solutions) {
+    for (const r of s.payload.input.resources) {
+      if (r.type === 'youtube') assert.match(r.url, /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
+      if (r.type === 'pdf' && r.url.includes('arxiv.org')) assert.match(r.url, /^https:\/\/arxiv\.org\/pdf\/\d{4}\.\d{4,5}$/);
+    }
+  }
 });

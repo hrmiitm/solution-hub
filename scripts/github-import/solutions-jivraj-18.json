@@ -1,10 +1,29 @@
 [
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/benchmark-finance-pageindex", "title": "Financial Document Retrieval Benchmark", "visibility": "public", "type": "demo",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/benchmark-finance-pageindex",
+    "title": "Financial Document Retrieval Benchmark",
+    "visibility": "public",
+    "type": "demo",
     "summary": "Compares PageIndex, vector RAG, full-context retrieval and agentic search on financial document question answering, with accuracy, cost and execution analysis.",
-    "category": ["Financial Analytics"],
-    "keywords": ["finance", "rag", "pageindex", "agentic search", "benchmarking", "financebench"],
-    "technologies": ["Python", "uv", "PageIndex", "FinanceBench", "OpenAI-compatible LLM gateway"],
+    "category": [
+      "Financial Analytics"
+    ],
+    "keywords": [
+      "finance",
+      "rag",
+      "pageindex",
+      "agentic search",
+      "benchmarking",
+      "financebench"
+    ],
+    "technologies": [
+      "Python",
+      "uv",
+      "PageIndex",
+      "FinanceBench",
+      "OpenAI-compatible LLM gateway"
+    ],
     "overview": "A harness that answers FinanceBench questions about company financial filings using four retrieval methods across 36 model and reasoning-effort settings from OpenAI, Anthropic and Google. Every answer is graded strictly and its exact cost is recorded.",
     "capabilities": [
       "Four methods side by side: PageIndex tree search, vector RAG (top-10 chunks), full-context prompting and an agentic regex-search-and-read loop.",
@@ -17,15 +36,42 @@
       "Estimating the cost and accuracy trade-off of different models before committing to one."
     ],
     "links": [
-      { "label": "Results site", "url": "https://jivraj-18.github.io/benchmark-finance-pageindex/", "type": "demo" }
+      {
+        "label": "Results site",
+        "url": "https://jivraj-18.github.io/benchmark-finance-pageindex/",
+        "type": "demo"
+      },
+      {
+        "label": "Paper: FinanceBench",
+        "url": "https://arxiv.org/pdf/2311.11944",
+        "type": "pdf"
+      }
     ]
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/knowledge-cutoff-bench", "title": "LLM Knowledge Cutoff Benchmark", "visibility": "public", "type": "demo",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/knowledge-cutoff-bench",
+    "title": "LLM Knowledge Cutoff Benchmark",
+    "visibility": "public",
+    "type": "demo",
     "summary": "Evaluates whether model knowledge-cutoff dates predict compatibility with old and new software APIs, using 32 programming tasks involving pandas, Django and pytest.",
-    "category": ["AI Evaluation"],
-    "keywords": ["llm", "benchmarking", "python", "api compatibility", "knowledge cutoff"],
-    "technologies": ["Python", "pandas", "Django", "pytest", "Claude Code CLI"],
+    "category": [
+      "AI Evaluation"
+    ],
+    "keywords": [
+      "llm",
+      "benchmarking",
+      "python",
+      "api compatibility",
+      "knowledge cutoff"
+    ],
+    "technologies": [
+      "Python",
+      "pandas",
+      "Django",
+      "pytest",
+      "Claude Code CLI"
+    ],
     "overview": "A 32-task benchmark testing two common beliefs: that older models cannot know newer APIs, and that newer models leak the latest APIs into code meant for older versions. The README compares Claude Opus 4.6 and Claude Opus 5.5 on real breaking changes in pandas 3.0, Django 6.0 and pytest 9.",
     "capabilities": [
       "Four task directions (legacy, legacy with explicit instruction, legacy edit, latest) to separate leakage from missing knowledge.",
@@ -38,15 +84,43 @@
       "A template for building version-sensitive coding evaluations."
     ],
     "links": [
-      { "label": "Results site", "url": "https://jivraj-18.github.io/knowledge-cutoff-bench/", "type": "demo" }
+      {
+        "label": "Results site",
+        "url": "https://jivraj-18.github.io/knowledge-cutoff-bench/",
+        "type": "demo"
+      },
+      {
+        "label": "Paper: Dated Data, tracing knowledge cutoffs in LLMs",
+        "url": "https://arxiv.org/pdf/2403.12958",
+        "type": "pdf"
+      }
     ]
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/youtube-pipeline", "title": "YouTube Content Processing Pipeline", "visibility": "public", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/youtube-pipeline",
+    "title": "YouTube Content Processing Pipeline",
+    "visibility": "public",
+    "type": "other",
     "summary": "Python scripts that fetch a recording from Google Drive, transcribe it with Whisper, draft chapters and descriptions with an LLM, overlay text on a thumbnail and upload to YouTube.",
-    "category": ["Media Automation"],
-    "keywords": ["youtube", "whisper", "video processing", "automation", "transcription", "thumbnails"],
-    "technologies": ["Python", "faster-whisper", "Pillow", "YouTube Data API", "Google Drive API"],
+    "category": [
+      "Media Automation"
+    ],
+    "keywords": [
+      "youtube",
+      "whisper",
+      "video processing",
+      "automation",
+      "transcription",
+      "thumbnails"
+    ],
+    "technologies": [
+      "Python",
+      "faster-whisper",
+      "Pillow",
+      "YouTube Data API",
+      "Google Drive API"
+    ],
     "overview": "A small set of scripts for publishing recorded sessions. The repository has no README, so this description comes from reading the source.",
     "capabilities": [
       "Downloads the latest video from a Google Drive folder.",
@@ -59,14 +133,40 @@
       "Speeding up publishing of recorded classes or webinars.",
       "A reference for chaining Drive, Whisper, LLM and YouTube API steps."
     ],
-    "links": []
+    "links": [
+      {
+        "label": "Sample generated thumbnail (from the repository)",
+        "url": "https://raw.githubusercontent.com/Jivraj-18/youtube-pipeline/main/tds_may25_thumbnail_v1.png",
+        "type": "image"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/Jivraj-18/youtube-pipeline/main/tds_may25_thumbnail_v1.png",
+    "primary": "https://raw.githubusercontent.com/Jivraj-18/youtube-pipeline/main/tds_may25_thumbnail_v1.png"
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/tds-jan25-project1", "title": "Automated Container-Based Evaluation", "visibility": "public", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/tds-jan25-project1",
+    "title": "Automated Container-Based Evaluation",
+    "visibility": "public",
+    "type": "other",
     "summary": "Evaluation and validation utilities with Docker orchestration for ARM and x86 environments, developed for a Tools in Data Science project.",
-    "category": ["Developer Infrastructure"],
-    "keywords": ["docker", "python", "evaluation", "arm", "x86", "containers"],
-    "technologies": ["Python", "Docker", "httpx", "asyncio"],
+    "category": [
+      "Developer Infrastructure"
+    ],
+    "keywords": [
+      "docker",
+      "python",
+      "evaluation",
+      "arm",
+      "x86",
+      "containers"
+    ],
+    "technologies": [
+      "Python",
+      "Docker",
+      "httpx",
+      "asyncio"
+    ],
     "overview": "Tooling for evaluating submitted projects that ship as Docker images. The repository README is only a title, so this description comes from reading the source.",
     "capabilities": [
       "Validation script that checks each submission's Docker Hub image and whether its GitHub repository has a Dockerfile.",
@@ -82,11 +182,30 @@
     "links": []
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/cad-bench", "title": "CAD Reconstruction Benchmark for Coding Agents", "visibility": "public", "type": "demo",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/cad-bench",
+    "title": "CAD Reconstruction Benchmark for Coding Agents",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A drawing-only CAD benchmark comparing two coding agents with FreeCAD MCP on the same three drawings, with interactive 3D stories and reproducible runs.",
-    "category": ["AI Evaluation"],
-    "keywords": ["cad", "agents", "mcp", "freecad", "benchmarking", "3d"],
-    "technologies": ["FreeCAD", "MCP", "JavaScript", "Python", "Harbor"],
+    "category": [
+      "AI Evaluation"
+    ],
+    "keywords": [
+      "cad",
+      "agents",
+      "mcp",
+      "freecad",
+      "benchmarking",
+      "3d"
+    ],
+    "technologies": [
+      "FreeCAD",
+      "MCP",
+      "JavaScript",
+      "Python",
+      "Harbor"
+    ],
     "overview": "A six-trial pilot in which Claude Opus 5.5 (Claude Code) and GPT-6.1 Sol (Codex), both using FreeCAD MCP, reconstruct the same three drawings. Results are shown as browser stories with side-by-side 3D views against the dataset reference.",
     "capabilities": [
       "Three 3D panels per drawing (each agent plus the reference), with independent or synchronised rotation and zoom.",
@@ -101,15 +220,51 @@
     ],
     "note": "The README is explicit that three drawings do not establish a dataset-wide winner and that there are no baseline arms.",
     "links": [
-      { "label": "Live site", "url": "https://jivraj-18.github.io/cad-bench/", "type": "demo" }
-    ]
+      {
+        "label": "Live site",
+        "url": "https://jivraj-18.github.io/cad-bench/",
+        "type": "demo"
+      },
+      {
+        "label": "Claude Code render: stepped enclosure",
+        "url": "https://raw.githubusercontent.com/Jivraj-18/cad-bench/main/docs/data/assets/freecad-6b54209a13/claude-code-opus--freecad-mcp/candidate.png",
+        "type": "image"
+      },
+      {
+        "label": "Dataset reference render: stepped enclosure",
+        "url": "https://raw.githubusercontent.com/Jivraj-18/cad-bench/main/docs/data/assets/freecad-6b54209a13/claude-code-opus--freecad-mcp/reference.png",
+        "type": "image"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/Jivraj-18/cad-bench/main/docs/data/assets/freecad-6b54209a13/claude-code-opus--freecad-mcp/candidate.png",
+    "primary": "https://raw.githubusercontent.com/Jivraj-18/cad-bench/main/docs/data/assets/freecad-6b54209a13/claude-code-opus--freecad-mcp/candidate.png"
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/machine-sound-diagnosis", "title": "Compressor Fault Diagnosis from Sound", "visibility": "public", "type": "demo",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/machine-sound-diagnosis",
+    "title": "Compressor Fault Diagnosis from Sound",
+    "visibility": "public",
+    "type": "demo",
     "summary": "An exploratory baseline testing whether existing audio models can tell which fault an air compressor has from a one-second sound clip, with cost and latency analysis.",
-    "category": ["Industrial AI"],
-    "keywords": ["audio", "fault diagnosis", "machine learning", "embeddings", "benchmarking", "cost analysis"],
-    "technologies": ["Python", "BEATs", "CLAP", "Gemini", "scikit-learn", "Kaggle"],
+    "category": [
+      "Industrial AI"
+    ],
+    "keywords": [
+      "audio",
+      "fault diagnosis",
+      "machine learning",
+      "embeddings",
+      "benchmarking",
+      "cost analysis"
+    ],
+    "technologies": [
+      "Python",
+      "BEATs",
+      "CLAP",
+      "Gemini",
+      "scikit-learn",
+      "Kaggle"
+    ],
     "overview": "Uses the IIT Kanpur air-compressor dataset (eight states, 225 one-second clips each) to compare handcrafted features, pretrained audio embeddings and zero-shot models for diagnosing the specific fault, not just normal versus abnormal.",
     "capabilities": [
       "Compares handcrafted FFT/MFCC features with frozen embeddings from several pretrained audio models.",
@@ -123,16 +278,57 @@
     ],
     "note": "As the README stresses, all recordings come from one compressor in one lab, so transfer to other machines is untested.",
     "links": [
-      { "label": "Live write-up", "url": "https://jivraj-18.github.io/machine-sound-diagnosis/", "type": "demo" },
-      { "label": "Technical report", "path": "results/REPORT.md", "type": "markdown" }
-    ]
+      {
+        "label": "Live write-up",
+        "url": "https://jivraj-18.github.io/machine-sound-diagnosis/",
+        "type": "demo"
+      },
+      {
+        "label": "Technical report",
+        "path": "results/REPORT.md",
+        "type": "markdown"
+      },
+      {
+        "label": "Spectrogram: bearing fault (from the write-up)",
+        "url": "https://raw.githubusercontent.com/Jivraj-18/machine-sound-diagnosis/main/docs/assets/img/spec_Bearing.png",
+        "type": "image"
+      },
+      {
+        "label": "Paper: BEATs, audio pre-training with acoustic tokenizers",
+        "url": "https://arxiv.org/pdf/2212.09058",
+        "type": "pdf"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/Jivraj-18/machine-sound-diagnosis/main/docs/assets/img/spec_Bearing.png",
+    "primary": "https://raw.githubusercontent.com/Jivraj-18/machine-sound-diagnosis/main/docs/assets/img/spec_Bearing.png"
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/nl_to_sql", "title": "Natural Language to SQL (IPL Cricket Data)", "visibility": "organization", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/nl_to_sql",
+    "title": "Natural Language to SQL (IPL Cricket Data)",
+    "visibility": "organization",
+    "type": "other",
     "summary": "A full-stack natural-language-to-SQL project with a separate backend, frontend and Docker-based setup, built around IPL cricket match data.",
-    "category": ["Data Analytics"],
-    "keywords": ["sql", "natural language", "analytics", "docker", "text-to-sql", "cricket"],
-    "technologies": ["Python", "FastAPI", "Next.js", "Docker", "SQLite", "OpenAI API", "Gemini API"],
+    "category": [
+      "Data Analytics"
+    ],
+    "keywords": [
+      "sql",
+      "natural language",
+      "analytics",
+      "docker",
+      "text-to-sql",
+      "cricket"
+    ],
+    "technologies": [
+      "Python",
+      "FastAPI",
+      "Next.js",
+      "Docker",
+      "SQLite",
+      "OpenAI API",
+      "Gemini API"
+    ],
     "overview": "Users ask questions in plain English and the backend turns them into read-only SQL over a database built from IPL match JSON files; a Next.js front end presents the results.",
     "capabilities": [
       "A system prompt that constrains the model to a single read-only SELECT and documents the relational schema (matches, deliveries and more).",
@@ -146,15 +342,45 @@
     ],
     "attribution": "The original work belongs to its upstream authors; this card does not claim sole authorship.",
     "links": [
-      { "label": "Upstream repository", "url": "https://github.com/HArsh-ri01/nl_to_sql", "type": "repository" }
+      {
+        "label": "Upstream repository",
+        "url": "https://github.com/HArsh-ri01/nl_to_sql",
+        "type": "repository"
+      },
+      {
+        "label": "Paper: Spider, a text-to-SQL benchmark",
+        "url": "https://arxiv.org/pdf/1809.08887",
+        "type": "pdf"
+      }
     ]
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/no-signal-project", "title": "No Signal: Role-Aware Business Analytics Assistant", "visibility": "organization", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/no-signal-project",
+    "title": "No Signal: Role-Aware Business Analytics Assistant",
+    "visibility": "organization",
+    "type": "other",
     "summary": "A full-stack prototype that signs users in with Google, assigns each a user type, and answers business questions with an LLM only when they fall within that user's area.",
-    "category": ["AI Applications"],
-    "keywords": ["llm", "google oauth", "python", "full stack", "analytics", "text-to-sql", "rag"],
-    "technologies": ["Python", "FastAPI", "Vue.js", "DuckDB", "Google OAuth", "Embeddings"],
+    "category": [
+      "AI Applications"
+    ],
+    "keywords": [
+      "llm",
+      "google oauth",
+      "python",
+      "full stack",
+      "analytics",
+      "text-to-sql",
+      "rag"
+    ],
+    "technologies": [
+      "Python",
+      "FastAPI",
+      "Vue.js",
+      "DuckDB",
+      "Google OAuth",
+      "Embeddings"
+    ],
     "overview": "Reading the source shows an analytics Q&A assistant over a tabular orders and shipping dataset. It classifies each question as financial, inventory, sales or customer and refuses it if it does not match the signed-in user's type. The repository also holds hackathon handbook and LLM API documents.",
     "capabilities": [
       "Google OAuth sign-in with a user type stored per account.",
@@ -167,14 +393,41 @@
       "A reference for combining text-to-SQL with document retrieval."
     ],
     "note": "No user records, datasets, keys or endpoints from the repository are included in this card.",
-    "links": []
+    "links": [
+      {
+        "label": "Paper: Retrieval-Augmented Generation",
+        "url": "https://arxiv.org/pdf/2005.11401",
+        "type": "pdf"
+      }
+    ]
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/project1743", "title": "AI-Assisted Learning Management Platform", "visibility": "private", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/project1743",
+    "title": "AI-Assisted Learning Management Platform",
+    "visibility": "private",
+    "type": "other",
     "summary": "A web application with a Flask backend and Vue frontend for courses, lectures and assignments, with student, instructor and TA roles and AI-assisted practice and question creation.",
-    "category": ["Software Engineering"],
-    "keywords": ["python", "javascript", "full stack", "web application", "education", "flask", "vue"],
-    "technologies": ["Python", "Flask", "Flask-Security", "SQLAlchemy", "Vue.js", "JavaScript"],
+    "category": [
+      "Software Engineering"
+    ],
+    "keywords": [
+      "python",
+      "javascript",
+      "full stack",
+      "web application",
+      "education",
+      "flask",
+      "vue"
+    ],
+    "technologies": [
+      "Python",
+      "Flask",
+      "Flask-Security",
+      "SQLAlchemy",
+      "Vue.js",
+      "JavaScript"
+    ],
     "overview": "Reading the source shows a learning-management prototype rather than a generic web app. The backend models courses, content, assignments and questions with role-based access; the front end has separate student, instructor and TA views.",
     "capabilities": [
       "Role-based access for students, instructors and TAs using Flask-Security.",
@@ -191,11 +444,27 @@
     "links": []
   },
   {
-    "account": "jivraj-18", "repo": "Jivraj-18/tds-p1-t2-2026-telegram-bot", "title": "Telegram Bot Evaluation Pipeline", "visibility": "private", "type": "other",
+    "account": "jivraj-18",
+    "repo": "Jivraj-18/tds-p1-t2-2026-telegram-bot",
+    "title": "Telegram Bot Evaluation Pipeline",
+    "visibility": "private",
+    "type": "other",
     "summary": "An automated pipeline for generating evaluation inputs, collecting responses from Telegram bots and grading them against expected answers.",
-    "category": ["Education Automation"],
-    "keywords": ["telegram", "evaluation", "python", "automation", "grading"],
-    "technologies": ["Python", "Telegram client API", "uv"],
+    "category": [
+      "Education Automation"
+    ],
+    "keywords": [
+      "telegram",
+      "evaluation",
+      "python",
+      "automation",
+      "grading"
+    ],
+    "technologies": [
+      "Python",
+      "Telegram client API",
+      "uv"
+    ],
     "overview": "A three-stage grader for a course project in which students build Telegram bots. Only the collection stage touches Telegram; generation and grading run offline, so runs are reproducible and resumable.",
     "capabilities": [
       "Generates per-student inputs deterministically and keeps a separate private answer key.",

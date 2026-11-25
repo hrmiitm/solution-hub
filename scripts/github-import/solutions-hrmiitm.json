@@ -1,10 +1,31 @@
 [
   {
-    "account": "hrmiitm", "repo": "hrmiitm/llm-counting-benchmark", "title": "LLM vs Deep Learning Object Counting Benchmark", "visibility": "public", "type": "demo",
+    "account": "hrmiitm",
+    "repo": "hrmiitm/llm-counting-benchmark",
+    "title": "LLM vs Deep Learning Object Counting Benchmark",
+    "visibility": "public",
+    "type": "demo",
     "summary": "An experimental benchmark comparing language models and dedicated deep-learning models on visual object counting, with prediction quality, confidence, inference cost and latency analysis.",
-    "category": ["AI Evaluation"],
-    "keywords": ["computer vision", "object counting", "llm", "deep learning", "benchmarking", "fsc-147"],
-    "technologies": ["Python", "JavaScript", "OpenRouter", "CountGD", "CounTX", "FamNet", "YOLO-World"],
+    "category": [
+      "AI Evaluation"
+    ],
+    "keywords": [
+      "computer vision",
+      "object counting",
+      "llm",
+      "deep learning",
+      "benchmarking",
+      "fsc-147"
+    ],
+    "technologies": [
+      "Python",
+      "JavaScript",
+      "OpenRouter",
+      "CountGD",
+      "CounTX",
+      "FamNet",
+      "YOLO-World"
+    ],
     "overview": "Compares vision-capable LLMs with dedicated counting models on sample images from the FSC-147 dataset. The current pilot uses six selected images and nine LLMs (54 answers) and is explicitly not an evaluation of the full dataset.",
     "capabilities": [
       "A JSON-schema LLM harness that records each answer's confidence, API-reported cost and latency, with pinned providers and no fallbacks.",
@@ -18,16 +39,57 @@
     ],
     "note": "Sample images come from FSC-147 (Ranjan et al., CVPR 2021); the repository README credits the dataset and links its source.",
     "links": [
-      { "label": "Benchmark website", "url": "https://hrmiitm.github.io/llm-counting-benchmark/", "type": "demo" },
-      { "label": "FSC-147 paper", "url": "https://arxiv.org/abs/2104.08391", "type": "link" }
-    ]
+      {
+        "label": "Benchmark website",
+        "url": "https://hrmiitm.github.io/llm-counting-benchmark/",
+        "type": "demo"
+      },
+      {
+        "label": "FSC-147 paper",
+        "url": "https://arxiv.org/abs/2104.08391",
+        "type": "link"
+      },
+      {
+        "label": "Sample FSC-147 image used in the pilot",
+        "url": "https://raw.githubusercontent.com/hrmiitm/llm-counting-benchmark/main/data/group1/1084.jpg",
+        "type": "image"
+      },
+      {
+        "label": "Paper: CountGD, multi-modal open-world counting",
+        "url": "https://arxiv.org/pdf/2407.04619",
+        "type": "pdf"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/hrmiitm/llm-counting-benchmark/main/data/group1/1084.jpg",
+    "primary": "https://raw.githubusercontent.com/hrmiitm/llm-counting-benchmark/main/data/group1/1084.jpg"
   },
   {
-    "account": "hrmiitm", "repo": "hrmiitm/llm-dl-models-benchmarkings", "title": "Financial Sentiment Model Benchmark", "visibility": "public", "type": "demo",
+    "account": "hrmiitm",
+    "repo": "hrmiitm/llm-dl-models-benchmarkings",
+    "title": "Financial Sentiment Model Benchmark",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A comparative evaluation of language models, pretrained deep-learning models and decision models for financial sentiment classification, capturing predictions, confidence, cost and inference time.",
-    "category": ["Financial Analytics"],
-    "keywords": ["finance", "sentiment analysis", "llm", "deep learning", "benchmarking", "financial phrasebank"],
-    "technologies": ["Python", "uv", "OpenRouter", "FinBERT", "RoBERTa", "DeBERTa", "Google Colab"],
+    "category": [
+      "Financial Analytics"
+    ],
+    "keywords": [
+      "finance",
+      "sentiment analysis",
+      "llm",
+      "deep learning",
+      "benchmarking",
+      "financial phrasebank"
+    ],
+    "technologies": [
+      "Python",
+      "uv",
+      "OpenRouter",
+      "FinBERT",
+      "RoBERTa",
+      "DeBERTa",
+      "Google Colab"
+    ],
     "overview": "Benchmarks 30 balanced Financial PhraseBank sentences across three model families, with the inputs and a separate answer key included in the repository.",
     "capabilities": [
       "LLM runs through a gateway with pinned providers, selectable reasoning levels and per-sentence request records.",
@@ -40,15 +102,48 @@
       "A reusable harness for cost, latency and accuracy comparisons."
     ],
     "links": [
-      { "label": "Results website", "url": "https://hrmiitm.github.io/llm-dl-models-benchmarkings/", "type": "demo" }
+      {
+        "label": "Results website",
+        "url": "https://hrmiitm.github.io/llm-dl-models-benchmarkings/",
+        "type": "demo"
+      },
+      {
+        "label": "Paper: FinBERT",
+        "url": "https://arxiv.org/pdf/1908.10063",
+        "type": "pdf"
+      },
+      {
+        "label": "Paper: Financial PhraseBank (Malo et al.)",
+        "url": "https://arxiv.org/pdf/1307.5336",
+        "type": "pdf"
+      }
     ]
   },
   {
-    "account": "hrmiitm", "repo": "hrmiitm/fde", "title": "Forward Deployed Engineer Learning Roadmap", "visibility": "private", "type": "document",
+    "account": "hrmiitm",
+    "repo": "hrmiitm/fde",
+    "title": "Forward Deployed Engineer Learning Roadmap",
+    "visibility": "private",
+    "type": "document",
     "summary": "A structured engineering curriculum covering software development, applied AI engineering, retrieval, APIs, deployment and production engineering fundamentals.",
-    "category": ["Learning and Development"],
-    "keywords": ["fde", "education", "ai engineering", "software engineering", "cloud", "roadmap"],
-    "technologies": ["Python", "TypeScript", "SQL", "Docker", "LLM APIs"],
+    "category": [
+      "Learning and Development"
+    ],
+    "keywords": [
+      "fde",
+      "education",
+      "ai engineering",
+      "software engineering",
+      "cloud",
+      "roadmap"
+    ],
+    "technologies": [
+      "Python",
+      "TypeScript",
+      "SQL",
+      "Docker",
+      "LLM APIs"
+    ],
     "overview": "A three-course roadmap, taken in order, where each module lists topics with the tools to learn them. It ends with a capstone and a note on what was deliberately left out.",
     "capabilities": [
       "Course 1, Engineering Foundations: programming, data and SQL, APIs and backend, and shipping code.",
@@ -60,6 +155,13 @@
       "Planning a self-study path towards customer-facing AI engineering roles.",
       "Benchmarking an existing training programme against a published topic list."
     ],
-    "links": []
+    "links": [
+      {
+        "label": "Video: What is a Forward Deployed Engineer? (The Data and AI Guy)",
+        "url": "https://www.youtube.com/watch?v=5G46l8GLaEE",
+        "type": "youtube"
+      }
+    ],
+    "primary": "https://www.youtube.com/watch?v=5G46l8GLaEE"
   }
 ]

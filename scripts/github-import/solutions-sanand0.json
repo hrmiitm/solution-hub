@@ -1,10 +1,30 @@
 [
   {
-    "account": "sanand0", "repo": "sanand0/aipipe", "title": "AI Pipe", "visibility": "public", "type": "demo",
+    "account": "sanand0",
+    "repo": "sanand0/aipipe",
+    "title": "AI Pipe",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A self-hostable LLM API gateway that simplifies access to language models, particularly for front-end applications.",
-    "category": ["AI Infrastructure"],
-    "keywords": ["llm", "api gateway", "cloudflare", "ai infrastructure", "openrouter", "frontend"],
-    "technologies": ["Cloudflare Workers", "JavaScript", "TypeScript", "OpenRouter", "OpenAI API", "Gemini API"],
+    "category": [
+      "AI Infrastructure"
+    ],
+    "keywords": [
+      "llm",
+      "api gateway",
+      "cloudflare",
+      "ai infrastructure",
+      "openrouter",
+      "frontend"
+    ],
+    "technologies": [
+      "Cloudflare Workers",
+      "JavaScript",
+      "TypeScript",
+      "OpenRouter",
+      "OpenAI API",
+      "Gemini API"
+    ],
     "overview": "AI Pipe lets web apps call LLM APIs (OpenRouter, OpenAI, Gemini) without a back end. A hosted instance runs at aipipe.org, and the MIT-licensed code can be self-hosted on Cloudflare.",
     "capabilities": [
       "OpenAI-compatible endpoints: set a base URL and an AI Pipe token in any OpenAI-style client or CLI.",
@@ -19,16 +39,42 @@
       "Running a team-owned gateway on Cloudflare."
     ],
     "links": [
-      { "label": "Website", "url": "https://aipipe.org/", "type": "demo" },
-      { "label": "Playground", "url": "https://aipipe.org/playground", "type": "demo" }
+      {
+        "label": "Website",
+        "url": "https://aipipe.org/",
+        "type": "demo"
+      },
+      {
+        "label": "Playground",
+        "url": "https://aipipe.org/playground",
+        "type": "demo"
+      }
     ]
   },
   {
-    "account": "sanand0", "repo": "sanand0/llmpricing", "title": "LLM Pricing and Quality Explorer", "visibility": "public", "type": "demo",
+    "account": "sanand0",
+    "repo": "sanand0/llmpricing",
+    "title": "LLM Pricing and Quality Explorer",
+    "visibility": "public",
+    "type": "demo",
     "summary": "Compare language models by cost and quality, identify cost-performance frontier models, and explore how the frontier changes over time.",
-    "category": ["AI Evaluation"],
-    "keywords": ["llm", "benchmarking", "cost optimization", "model selection", "pareto frontier", "elo"],
-    "technologies": ["JavaScript", "HTML", "Python", "Just"],
+    "category": [
+      "AI Evaluation"
+    ],
+    "keywords": [
+      "llm",
+      "benchmarking",
+      "cost optimization",
+      "model selection",
+      "pareto frontier",
+      "elo"
+    ],
+    "technologies": [
+      "JavaScript",
+      "HTML",
+      "Python",
+      "Just"
+    ],
     "overview": "An interactive chart that plots each LLM's representative API input price per million tokens against its Arena Elo score, and marks which models are Pareto-optimal (nothing is both cheaper and better).",
     "capabilities": [
       "Cost-versus-quality scatter plot with Pareto-optimal models highlighted green and dominated models red.",
@@ -41,15 +87,42 @@
       "Tracking how the cost-quality frontier moves as new models launch."
     ],
     "links": [
-      { "label": "Live explorer", "url": "https://sanand0.github.io/llmpricing/", "type": "demo" }
+      {
+        "label": "Live explorer",
+        "url": "https://sanand0.github.io/llmpricing/",
+        "type": "demo"
+      },
+      {
+        "label": "Paper: Chatbot Arena (source of the quality scores)",
+        "url": "https://arxiv.org/pdf/2403.04132",
+        "type": "pdf"
+      }
     ]
   },
   {
-    "account": "sanand0", "repo": "sanand0/tools-in-data-science-public", "title": "Tools in Data Science", "visibility": "public", "type": "document",
+    "account": "sanand0",
+    "repo": "sanand0/tools-in-data-science-public",
+    "title": "Tools in Data Science",
+    "visibility": "public",
+    "type": "document",
     "summary": "Learning materials for IIT Madras's Tools in Data Science course, covering practical data science and software engineering workflows.",
-    "category": ["Learning and Development"],
-    "keywords": ["education", "python", "data science", "engineering", "course content"],
-    "technologies": ["Hugo", "Markdown", "Python", "Shell", "GitHub Pages"],
+    "category": [
+      "Learning and Development"
+    ],
+    "keywords": [
+      "education",
+      "python",
+      "data science",
+      "engineering",
+      "course content"
+    ],
+    "technologies": [
+      "Hugo",
+      "Markdown",
+      "Python",
+      "Shell",
+      "GitHub Pages"
+    ],
     "overview": "The course content for Tools in Data Science, a diploma-level course at IIT Madras. The repository holds one folder per term, shared topic pages and live-session summaries, and builds a static site with Hugo.",
     "capabilities": [
       "Term-by-term content folders (Jan 2025 through Sep 2026) with a current-term home page.",
@@ -63,16 +136,47 @@
       "Instructors adapting the structure or topic pages for similar courses."
     ],
     "links": [
-      { "label": "Course website", "url": "https://tds.s-anand.net/", "type": "documentation" },
-      { "label": "Official IIT Madras course page", "url": "https://study.iitm.ac.in/ds/course_pages/BSSE2002.html", "type": "link" }
+      {
+        "label": "Course website",
+        "url": "https://tds.s-anand.net/",
+        "type": "documentation"
+      },
+      {
+        "label": "Official IIT Madras course page",
+        "url": "https://study.iitm.ac.in/ds/course_pages/BSSE2002.html",
+        "type": "link"
+      },
+      {
+        "label": "Lecture playlist (IIT Madras BS channel)",
+        "url": "https://www.youtube.com/playlist?list=PLZ2ps__7DhBZJ2q_hd8ZbDRgOJlB0CZLw",
+        "type": "link"
+      }
     ]
   },
   {
-    "account": "sanand0", "repo": "sanand0/tools", "title": "AI-Powered Web Tools", "visibility": "public", "type": "demo",
+    "account": "sanand0",
+    "repo": "sanand0/tools",
+    "title": "AI-Powered Web Tools",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A collection of lightweight web utilities, many developed using language models, for practical everyday tasks.",
-    "category": ["Productivity"],
-    "keywords": ["web applications", "productivity", "llm", "automation", "bookmarklets"],
-    "technologies": ["JavaScript", "HTML", "CSS", "Python", "Bookmarklets"],
+    "category": [
+      "Productivity"
+    ],
+    "keywords": [
+      "web applications",
+      "productivity",
+      "llm",
+      "automation",
+      "bookmarklets"
+    ],
+    "technologies": [
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Python",
+      "Bookmarklets"
+    ],
     "overview": "A set of single-page web apps and bookmarklets, mostly written with LLMs, hosted at tools.s-anand.net. Each tool does one small job in the browser.",
     "capabilities": [
       "Bookmarklets that copy AI conversations, Hacker News threads, Discourse topics or web pages as Markdown or JSON.",
@@ -86,15 +190,49 @@
       "Quick data wrangling without installing software."
     ],
     "links": [
-      { "label": "Website", "url": "https://tools.s-anand.net/", "type": "demo" }
-    ]
+      {
+        "label": "Website",
+        "url": "https://tools.s-anand.net/",
+        "type": "demo"
+      },
+      {
+        "label": "Screenshot: GitHub Summary tool",
+        "url": "https://raw.githubusercontent.com/sanand0/tools/main/githubsummary/screenshot.webp",
+        "type": "image"
+      },
+      {
+        "label": "Screenshot: Image Generator tool",
+        "url": "https://raw.githubusercontent.com/sanand0/tools/main/imagegen/screenshot.webp",
+        "type": "image"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/sanand0/tools/main/githubsummary/screenshot.webp",
+    "primary": "https://raw.githubusercontent.com/sanand0/tools/main/githubsummary/screenshot.webp"
   },
   {
-    "account": "sanand0", "repo": "sanand0/datastories", "title": "Interactive Data Stories", "visibility": "public", "type": "demo",
+    "account": "sanand0",
+    "repo": "sanand0/datastories",
+    "title": "Interactive Data Stories",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A collection of data visualizations and interactive stories that communicate insights through visual exploration.",
-    "category": ["Data Analytics"],
-    "keywords": ["visualization", "analytics", "storytelling", "data", "interactive"],
-    "technologies": ["JavaScript", "HTML", "CSS", "Python", "Just"],
+    "category": [
+      "Data Analytics"
+    ],
+    "keywords": [
+      "visualization",
+      "analytics",
+      "storytelling",
+      "data",
+      "interactive"
+    ],
+    "technologies": [
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Python",
+      "Just"
+    ],
     "overview": "Small, mostly vibe-coded data stories, each a self-contained page with its own dataset and narrative, published as a site with a screenshot per story.",
     "capabilities": [
       "Explorable atlases, for example tall buildings (height versus floor count) and embassies sent abroad versus GDP.",
@@ -107,15 +245,48 @@
       "Starting points for new interactive data pieces."
     ],
     "links": [
-      { "label": "Stories site", "url": "https://sanand0.github.io/datastories/", "type": "demo" }
-    ]
+      {
+        "label": "Stories site",
+        "url": "https://sanand0.github.io/datastories/",
+        "type": "demo"
+      },
+      {
+        "label": "Screenshot: building heights story",
+        "url": "https://raw.githubusercontent.com/sanand0/datastories/main/building-height/screenshot.webp",
+        "type": "image"
+      },
+      {
+        "label": "Screenshot: AI agents for science story",
+        "url": "https://raw.githubusercontent.com/sanand0/datastories/main/ai-agents-for-science/screenshot.webp",
+        "type": "image"
+      }
+    ],
+    "thumbnail": "https://raw.githubusercontent.com/sanand0/datastories/main/building-height/screenshot.webp",
+    "primary": "https://raw.githubusercontent.com/sanand0/datastories/main/building-height/screenshot.webp"
   },
   {
-    "account": "sanand0", "repo": "sanand0/llmdemos", "title": "Business LLM Demonstrations", "visibility": "public", "type": "demo",
+    "account": "sanand0",
+    "repo": "sanand0/llmdemos",
+    "title": "Business LLM Demonstrations",
+    "visibility": "public",
+    "type": "demo",
     "summary": "A collection of language-model demonstrations illustrating practical business applications and opportunities for AI adoption.",
-    "category": ["AI Solutions"],
-    "keywords": ["llm", "business applications", "generative ai", "prototypes", "demos"],
-    "technologies": ["HTML", "Python", "Just", "GitHub Pages"],
+    "category": [
+      "AI Solutions"
+    ],
+    "keywords": [
+      "llm",
+      "business applications",
+      "generative ai",
+      "prototypes",
+      "demos"
+    ],
+    "technologies": [
+      "HTML",
+      "Python",
+      "Just",
+      "GitHub Pages"
+    ],
     "overview": "A catalogue of mostly LLM demos with business use cases. The README is explicit that these are personal, MIT-licensed open-source projects, not official products of any employer, and contain no confidential data or IP.",
     "capabilities": [
       "Demos are listed in a `config.json` and built into a static catalogue page with `just build`.",
@@ -127,15 +298,42 @@
       "Seeding ideas for internal AI prototypes."
     ],
     "links": [
-      { "label": "Demo catalogue", "url": "https://sanand0.github.io/llmdemos/", "type": "demo" }
-    ]
+      {
+        "label": "Demo catalogue",
+        "url": "https://sanand0.github.io/llmdemos/",
+        "type": "demo"
+      },
+      {
+        "label": "Talk: Intro to Large Language Models (Andrej Karpathy)",
+        "url": "https://www.youtube.com/watch?v=zjkBMFhNj_g",
+        "type": "youtube"
+      }
+    ],
+    "primary": "https://www.youtube.com/watch?v=zjkBMFhNj_g"
   },
   {
-    "account": "sanand0", "repo": "sanand0/skills", "title": "Reusable Agent Skills", "visibility": "organization", "type": "other",
+    "account": "sanand0",
+    "repo": "sanand0/skills",
+    "title": "Reusable Agent Skills",
+    "visibility": "organization",
+    "type": "other",
     "summary": "Reusable instructions and workflows for AI agents performing coding, reasoning, writing, design and data-related tasks.",
-    "category": ["Agentic AI"],
-    "keywords": ["agents", "skills", "automation", "coding agents", "prompts"],
-    "technologies": ["Markdown", "Python", "Just", "Agent Skills (SKILL.md)"],
+    "category": [
+      "Agentic AI"
+    ],
+    "keywords": [
+      "agents",
+      "skills",
+      "automation",
+      "coding agents",
+      "prompts"
+    ],
+    "technologies": [
+      "Markdown",
+      "Python",
+      "Just",
+      "Agent Skills (SKILL.md)"
+    ],
     "overview": "A library of agent skills. Each skill is a folder with a `SKILL.md` whose description tells an agent when to use it, so agents can load only what is relevant.",
     "capabilities": [
       "Coding and design guides (code style, front-end design, agent-friendly CLIs, browser debugging over CDP).",
@@ -147,14 +345,38 @@
       "Loading consistent working practices into coding agents.",
       "Sharing a vetted set of agent instructions across a team."
     ],
-    "links": []
+    "links": [
+      {
+        "label": "Video: Claude Agent Skills explained (Anthropic)",
+        "url": "https://www.youtube.com/watch?v=fOxC44g8vig",
+        "type": "youtube"
+      }
+    ],
+    "primary": "https://www.youtube.com/watch?v=fOxC44g8vig"
   },
   {
-    "account": "sanand0", "repo": "sanand0/anand-skill-mcp", "title": "Agent Skills MCP Server", "visibility": "organization", "type": "other",
+    "account": "sanand0",
+    "repo": "sanand0/anand-skill-mcp",
+    "title": "Agent Skills MCP Server",
+    "visibility": "organization",
+    "type": "other",
     "summary": "An MCP server that makes reusable agent skills available to compatible AI clients.",
-    "category": ["Agent Infrastructure"],
-    "keywords": ["mcp", "agents", "skills", "integration", "cloudflare workers"],
-    "technologies": ["Cloudflare Workers", "MCP", "TypeScript", "Python"],
+    "category": [
+      "Agent Infrastructure"
+    ],
+    "keywords": [
+      "mcp",
+      "agents",
+      "skills",
+      "integration",
+      "cloudflare workers"
+    ],
+    "technologies": [
+      "Cloudflare Workers",
+      "MCP",
+      "TypeScript",
+      "Python"
+    ],
     "overview": "A public, stateless Cloudflare Worker that exposes local `SKILL.md` files as MCP tools. A tool's description comes from the skill's front matter, and calling the tool returns the full skill.",
     "capabilities": [
       "Each skill becomes an MCP tool, so any MCP client can discover and fetch it.",
@@ -167,14 +389,37 @@
       "A starting point for publishing a read-only set of instructions over MCP."
     ],
     "note": "The server has no authentication, as the README states, so it should only carry skills that are safe to publish.",
-    "links": []
+    "links": [
+      {
+        "label": "Video: The Model Context Protocol (Anthropic)",
+        "url": "https://www.youtube.com/watch?v=CQywdSdi5iA",
+        "type": "youtube"
+      }
+    ],
+    "primary": "https://www.youtube.com/watch?v=CQywdSdi5iA"
   },
   {
-    "account": "sanand0", "repo": "sanand0/chatgpt-to-markdown", "title": "ChatGPT to Markdown Converter", "visibility": "private", "type": "other",
+    "account": "sanand0",
+    "repo": "sanand0/chatgpt-to-markdown",
+    "title": "ChatGPT to Markdown Converter",
+    "visibility": "private",
+    "type": "other",
     "summary": "A utility for converting exported ChatGPT conversation JSON into readable Markdown documents.",
-    "category": ["Productivity"],
-    "keywords": ["chatgpt", "markdown", "data conversion", "knowledge management", "cli"],
-    "technologies": ["JavaScript", "Node.js", "npm"],
+    "category": [
+      "Productivity"
+    ],
+    "keywords": [
+      "chatgpt",
+      "markdown",
+      "data conversion",
+      "knowledge management",
+      "cli"
+    ],
+    "technologies": [
+      "JavaScript",
+      "Node.js",
+      "npm"
+    ],
     "overview": "A command-line tool that turns a ChatGPT data export (the archive folder or a `conversations.json` file) into one Markdown file per chat. The README says it also converts Claude chat exports.",
     "capabilities": [
       "Runs with `npx chatgpt-to-markdown <archive>` with nothing to install.",
@@ -189,11 +434,30 @@
     "links": []
   },
   {
-    "account": "sanand0", "repo": "sanand0/scripts", "title": "Developer Productivity Scripts", "visibility": "private", "type": "other",
+    "account": "sanand0",
+    "repo": "sanand0/scripts",
+    "title": "Developer Productivity Scripts",
+    "visibility": "private",
+    "type": "other",
     "summary": "A collection of system configuration instructions, dotfiles and automation scripts for Windows and Linux environments.",
-    "category": ["Developer Productivity"],
-    "keywords": ["linux", "windows", "automation", "developer tools", "dotfiles"],
-    "technologies": ["Shell", "Python", "fish", "PowerShell", "Batchfile", "Just"],
+    "category": [
+      "Developer Productivity"
+    ],
+    "keywords": [
+      "linux",
+      "windows",
+      "automation",
+      "developer tools",
+      "dotfiles"
+    ],
+    "technologies": [
+      "Shell",
+      "Python",
+      "fish",
+      "PowerShell",
+      "Batchfile",
+      "Just"
+    ],
     "overview": "The public half of a personal setup: instructions for configuring Windows (Cygwin) and Linux laptops, shell and git configuration, and a large set of small productivity scripts.",
     "capabilities": [
       "Setup guides for Linux, Windows and Android, plus a note on online tools that replace installed software.",

@@ -180,9 +180,9 @@ Without `key.properties`, release builds fall back to the debug key.
 
 | Scope | Limit | Where |
 |---|---|---|
-| Any `/api/*` request, per client IP | 600 per minute, per Worker isolate (best effort) | in memory |
-| Google sign-in, per client IP | 20 per 10 minutes (every attempt counts) | D1 |
-| Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 120 per 10 minutes, per user | D1 |
+| Any `/api/*` request, per client IP | 1,800 per minute, per Worker isolate (best effort) | in memory |
+| Google sign-in, per client IP | 60 per 10 minutes (every attempt counts) | D1 |
+| Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 360 per 10 minutes, per user | D1 |
 | Request body | 256 KB | Worker |
 
 Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volumetric abuse.
