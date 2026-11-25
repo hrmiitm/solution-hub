@@ -31,3 +31,19 @@ app/android/**/GeneratedPluginRegistrant.java
 .idea/
 .vscode/
 .DS_Store
+
+# Database backups (may contain real data)
+backups/
+
+# Secrets and sensitive files: never commit (see AGENTS.md "Security")
+scripts/github-import/accounts.json
+*.pem
+*.p12
+*.key
+*.pfx
+service-account*.json
+*credentials*.json
+client_secret*.json
+token.pickle
+google-services.json
+*.sql.bak

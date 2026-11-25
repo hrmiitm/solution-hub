@@ -7,6 +7,7 @@ import '../app_scope.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import '../widgets/pager.dart';
 import '../widgets/solution_card.dart';
 import 'explore_controller.dart';
 
@@ -280,17 +281,13 @@ class _ExplorePageState extends State<ExplorePage> {
           )
         else ...[
           SolutionGrid(items: c.items),
-          if (c.hasMore)
-            Center(
-              child: OutlinedButton(
-                onPressed: c.loadingMore ? null : c.loadMore,
-                child: Text(
-                  c.loadingMore
-                      ? 'Loading…'
-                      : 'Load more (${c.total - c.items.length} more)',
-                ),
-              ),
-            ),
+          Pager(
+            page: c.page,
+            total: c.total,
+            pageSize: c.query.limit,
+            busy: c.loading,
+            onPage: c.goToPage,
+          ),
         ],
       ],
     );

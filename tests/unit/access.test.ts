@@ -3,8 +3,7 @@ import { test } from 'node:test';
 import type { Actor } from '../../worker/src/env.ts';
 import { allowedVisibilities, assertCanAssign, canModify, canView, visibleSql } from '../../worker/src/services/access.ts';
 
-const rw = new Set(['read', 'write'] as const);
-const user = (id: string, orgDomain: string | null, scopes: ReadonlySet<'read' | 'write'> = rw): Actor => ({ userId: id, username: id, orgDomain, scopes });
+const user = (id: string, orgDomain: string | null): Actor => ({ userId: id, username: id, orgDomain });
 const owner = user('owner', 'acme.com');
 const colleague = user('colleague', 'acme.com');
 const outsider = user('outsider', 'other.com');
@@ -32,12 +31,12 @@ test('organization access fails closed when the owner has no organization', () =
   assert.equal(canView(user('y', null), sol('organization', null)), false);
 });
 
-test('only the owner with write scope can modify', () => {
+test('only the owner can modify (all users are otherwise equal)', () => {
   assert.equal(canModify(owner, sol('public')), true);
   assert.equal(canModify(colleague, sol('organization')), false);
   assert.equal(canModify(null, sol('public')), false);
-  assert.equal(canModify(user('owner', 'acme.com', new Set(['read'] as const)), sol('public')), false);
-  assert.equal(canView(user('owner', 'acme.com', new Set(['write'] as const)), sol('public')), false, 'read scope needed to view');
+  assert.equal(canModify(outsider, sol('public')), false);
+  assert.equal(canModify(personal, sol('public')), false);
 });
 
 test('organization visibility is unavailable to personal accounts', () => {

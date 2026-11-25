@@ -1,0 +1,23 @@
+{
+  "_comment": "SIMULATED history for LOCAL fixtures only, to exercise reopened and updated-after-completion states. Every sequence ends in the solution's initial status. It is never loaded into production. Events are placed after the repository's real last push and are labelled in the message and in `changes.simulated`.",
+  "scenarios": {
+    "sanand0/aipipe": [{ "dayOffset": 1, "kind": "progress" }],
+    "sanand0/llmdemos": [
+      { "dayOffset": 1, "kind": "reopen" },
+      { "dayOffset": 2, "kind": "progress" },
+      { "dayOffset": 3, "kind": "complete" }
+    ],
+    "jivraj-18/knowledge-cutoff-bench": [{ "dayOffset": 5, "kind": "progress" }],
+    "jivraj-18/benchmark-finance-pageindex": [
+      { "dayOffset": 1, "kind": "reopen" },
+      { "dayOffset": 2, "kind": "progress" },
+      { "dayOffset": 4, "kind": "complete" }
+    ],
+    "jivraj-18/machine-sound-diagnosis": [
+      { "dayOffset": 1, "kind": "complete" },
+      { "dayOffset": 3, "kind": "reopen" }
+    ],
+    "hrmiitm/llm-counting-benchmark": [{ "dayOffset": 1, "kind": "progress" }],
+    "hrmiitm/llm-dl-models-benchmarkings": [{ "dayOffset": 1, "kind": "progress" }]
+  }
+}

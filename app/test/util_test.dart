@@ -109,7 +109,7 @@ void main() {
       'sort': 'created',
       'visibility': 'public',
       'page': '1',
-      'limit': '24',
+      'limit': '12',
     });
   });
 

@@ -23,15 +23,14 @@ export async function resolveSession(db: D1Database, token: string): Promise<Act
   if (!token || token.length > 128) return null;
   const row = await db
     .prepare(
-      `SELECT s.user_id, s.scopes, u.username, u.org_domain
+      `SELECT s.user_id, u.username, u.org_domain
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?1 AND s.expires_at > ?2`,
     )
     .bind(await sha256Hex(token), nowIso())
-    .first<{ user_id: string; scopes: string; username: string; org_domain: string | null }>();
+    .first<{ user_id: string; username: string; org_domain: string | null }>();
   if (!row) return null;
-  const scopes = new Set(row.scopes.split(/\s+/).filter((s): s is 'read' | 'write' => s === 'read' || s === 'write'));
-  return { userId: row.user_id, username: row.username, orgDomain: row.org_domain, scopes };
+  return { userId: row.user_id, username: row.username, orgDomain: row.org_domain };
 }
 
 export async function revokeSession(db: D1Database, token: string): Promise<void> {

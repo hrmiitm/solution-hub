@@ -42,14 +42,13 @@ class ExploreController extends ChangeNotifier {
   List<Solution> items = [];
   int total = 0;
   bool loading = false;
-  bool loadingMore = false;
   Object? error;
   Categories categories = Categories.empty;
   Set<String> extraFilters = {};
   int _requestId = 0;
   bool _prefsLoaded = false;
 
-  bool get hasMore => items.length < total;
+  int get page => query.page;
   int get activeFilterCount =>
       query.filters.values.fold(0, (n, v) => n + v.length);
   List<FilterDef> get visibleFilters => filterDefs
@@ -85,16 +84,17 @@ class ExploreController extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Reloads the first page (keeps current results visible meanwhile).
+  /// Reloads the current page (keeps current results visible meanwhile).
   Future<void> refresh() async {
     await _loadPrefs();
     final id = ++_requestId;
+    var retry = false;
     loading = true;
     error = null;
     notifyListeners();
     try {
       final results = await Future.wait([
-        api.solutions(query.copyWith(page: 1)),
+        api.solutions(query),
         api.categories(visibility: sharedLevels),
       ]);
       if (id != _requestId) return;
@@ -102,6 +102,12 @@ class ExploreController extends ChangeNotifier {
       categories = results[1] as Categories;
       items = page.items;
       total = page.total;
+      // The last page can disappear (e.g. after a delete): fall back to the new last page.
+      final last = total == 0 ? 1 : (total + query.limit - 1) ~/ query.limit;
+      if (query.page > last) {
+        query = query.copyWith(page: last);
+        retry = true;
+      }
     } catch (e) {
       if (id != _requestId) return;
       error = e;
@@ -111,26 +117,14 @@ class ExploreController extends ChangeNotifier {
         notifyListeners();
       }
     }
+    if (retry) await refresh();
   }
 
-  Future<void> loadMore() async {
-    if (loadingMore || !hasMore) return;
-    loadingMore = true;
-    notifyListeners();
-    final id = _requestId;
-    try {
-      final next = query.copyWith(page: (items.length ~/ query.limit) + 1);
-      final page = await api.solutions(next);
-      if (id != _requestId) return;
-      final seen = items.map((s) => s.id).toSet();
-      items = [...items, ...page.items.where((s) => !seen.contains(s.id))];
-      total = page.total;
-    } on ApiException catch (e) {
-      error = e;
-    } finally {
-      loadingMore = false;
-      notifyListeners();
-    }
+  /// Shows [page] (1-based) of the current search.
+  void goToPage(int page) {
+    if (page == query.page || page < 1) return;
+    query = query.copyWith(page: page);
+    refresh();
   }
 
   void _apply(SolutionQuery next) {

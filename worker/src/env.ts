@@ -18,6 +18,4 @@ export interface Actor {
   username: string;
   /** Verified Google Workspace domain (`hd` claim); null for personal accounts. */
   orgDomain: string | null;
-  /** Granted scopes; web/app sessions get both. Future MCP tokens may be narrower. */
-  scopes: ReadonlySet<'read' | 'write'>;
 }

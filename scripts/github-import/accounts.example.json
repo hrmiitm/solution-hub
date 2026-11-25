@@ -1,0 +1,37 @@
+{
+  "_comment": "Template. Copy to accounts.json (git-ignored) and put the real verified Google emails there. `email` is matched against the verified Google ID-token email at sign-in and `orgDomain` against the verified `hd` claim. Emails are never copied into solution text or public API responses.",
+  "accounts": [
+    {
+      "id": "sanand0",
+      "name": "S. Anand",
+      "github": "sanand0",
+      "email": "sanand0@example.invalid",
+      "orgDomain": "straive.com",
+      "localUsername": "sanand0"
+    },
+    {
+      "id": "jivraj-18",
+      "name": "Jivraj Singh Shekhawat",
+      "github": "Jivraj-18",
+      "email": "jivraj-18@example.invalid",
+      "orgDomain": "straive.com",
+      "localUsername": "jivraj-18"
+    },
+    {
+      "id": "sujalpradhan",
+      "name": "Sujal Pradhan",
+      "github": "SujalPradhan",
+      "email": "sujalpradhan@example.invalid",
+      "orgDomain": "ds.study.iitm.ac.in",
+      "localUsername": "sujalpradhan"
+    },
+    {
+      "id": "hrmiitm",
+      "name": "Hritik",
+      "github": "hrmiitm",
+      "email": "hrmiitm@example.invalid",
+      "orgDomain": "ds.study.iitm.ac.in",
+      "localUsername": "hrmiitm"
+    }
+  ]
+}

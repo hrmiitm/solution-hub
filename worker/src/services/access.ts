@@ -10,7 +10,7 @@
  *                 Workspace domain (`hd`) equals the owner's
  *   private       the owner only
  *
- * Only the owner (with a write-scoped credential) can modify or delete.
+ * All signed-in users are equal: only the owner can modify or delete their solutions.
  */
 import type { Actor } from '../env.ts';
 import { AppError } from '../lib/errors.ts';
@@ -27,7 +27,6 @@ export interface AccessSubject {
 }
 
 export function canView(viewer: Viewer, s: AccessSubject): boolean {
-  if (viewer && !viewer.scopes.has('read')) return false;
   if (s.visibility === 'public') return true;
   if (!viewer) return false;
   if (s.owner_id === viewer.userId) return true;
@@ -35,7 +34,7 @@ export function canView(viewer: Viewer, s: AccessSubject): boolean {
 }
 
 export function canModify(viewer: Viewer, s: Pick<AccessSubject, 'owner_id'>): boolean {
-  return !!viewer && viewer.scopes.has('write') && viewer.userId === s.owner_id;
+  return !!viewer && viewer.userId === s.owner_id;
 }
 
 /** Visibility levels this actor may assign to their own solutions. */
@@ -51,14 +50,9 @@ export function assertCanAssign(actor: Actor, visibility: Visibility): void {
   }
 }
 
-export function requireWriter(viewer: Viewer): Actor {
+export function requireSignedIn(viewer: Viewer): Actor {
   if (!viewer) throw new AppError('unauthorized', 'Sign in required');
-  if (!viewer.scopes.has('write')) throw new AppError('forbidden', 'This credential lacks the "write" permission');
   return viewer;
-}
-
-export function requireReader(viewer: Viewer): void {
-  if (viewer && !viewer.scopes.has('read')) throw new AppError('forbidden', 'This credential lacks the "read" permission');
 }
 
 /**

@@ -301,7 +301,7 @@ class SolutionQuery {
     this.sort,
     this.visibility,
     this.page = 1,
-    this.limit = 24,
+    this.limit = 12,
   });
 
   final String q;

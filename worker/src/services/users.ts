@@ -1,7 +1,7 @@
 import type { GoogleIdentity } from '../auth/google.ts';
 import { newId, nowIso, slugify } from '../lib/util.ts';
 import { notFound } from '../lib/errors.ts';
-import { requireReader, visibleSql, type Viewer } from './access.ts';
+import { visibleSql, type Viewer } from './access.ts';
 
 export interface UserRow {
   id: string;
@@ -67,6 +67,31 @@ export async function upsertGoogleUser(db: D1Database, identity: GoogleIdentity)
       .run();
     return { ...existing, name: identity.name, email: identity.email, avatar_url: identity.picture, org_domain: identity.hd, updated_at: now };
   }
+  // Seeded accounts (see scripts/import.mjs) have a verified-email identity but no Google subject yet.
+  // The first sign-in whose *verified* email (and, for Workspace accounts, `hd` domain) matches takes
+  // that account over, so the seeded profile and solutions simply belong to the person who signs in.
+  // No `sub` is ever invented and no special privileges are granted.
+  const claimable = await db
+    .prepare(
+      `SELECT * FROM users WHERE google_id IS NULL AND email <> '' AND lower(email) = lower(?1)
+         AND (org_domain IS NULL OR org_domain = ?2)`,
+    )
+    .bind(identity.email, identity.hd ?? '')
+    .first<UserRow>();
+  if (claimable) {
+    const claimed = await db
+      .prepare(
+        `UPDATE users SET google_id = ?2, name = ?3, email = ?4, avatar_url = ?5, org_domain = ?6, updated_at = ?7
+         WHERE id = ?1 AND google_id IS NULL`,
+      )
+      .bind(claimable.id, identity.sub, identity.name, identity.email, identity.picture, identity.hd, now)
+      .run();
+    if (claimed.meta.changes > 0) {
+      return { ...claimable, google_id: identity.sub, name: identity.name, email: identity.email, avatar_url: identity.picture, org_domain: identity.hd, updated_at: now };
+    }
+    const raced = await db.prepare(`SELECT * FROM users WHERE google_id = ?1`).bind(identity.sub).first<UserRow>();
+    if (raced) return raced;
+  }
   // Retry on the (rare) race where two sign-ins pick the same username.
   for (let attempt = 0; attempt < 3; attempt++) {
     const username = await availableUsername(db, baseUsername(identity));
@@ -107,7 +132,6 @@ export async function getUserByUsername(db: D1Database, username: string): Promi
 
 /** Profile with solution counts, counting only solutions the viewer may see. */
 export async function getProfile(db: D1Database, viewer: Viewer, username: string) {
-  requireReader(viewer);
   const user = await getUserByUsername(db, username);
   const binds: unknown[] = [user.id];
   const bind = (v: unknown) => `?${binds.push(v)}`;

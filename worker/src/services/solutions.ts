@@ -7,7 +7,7 @@
  * their existence is never revealed.
  */
 import type { Actor } from '../env.ts';
-import { assertCanAssign, canModify, canView, requireReader, requireWriter, visibleSql, type Viewer } from './access.ts';
+import { assertCanAssign, canModify, canView, requireSignedIn, visibleSql, type Viewer } from './access.ts';
 import { AppError, notFound } from '../lib/errors.ts';
 import type { Resource } from '../lib/resources.ts';
 import { newId, nowIso, parseJsonArray, slugify } from '../lib/util.ts';
@@ -124,7 +124,6 @@ async function loadRow(db: D1Database, id: string): Promise<SolutionRow | null> 
 }
 
 async function loadReadable(db: D1Database, viewer: Viewer, id: string): Promise<SolutionRow> {
-  requireReader(viewer);
   const row = await loadRow(db, id);
   // Invisible solutions are reported as missing so their existence is not revealed.
   if (!row || !canView(viewer, row)) throw notFound('Solution');
@@ -132,7 +131,7 @@ async function loadReadable(db: D1Database, viewer: Viewer, id: string): Promise
 }
 
 async function loadOwned(db: D1Database, viewer: Viewer, id: string): Promise<{ row: SolutionRow; actor: Actor }> {
-  const actor = requireWriter(viewer);
+  const actor = requireSignedIn(viewer);
   const row = await loadRow(db, id);
   if (!row || !canView(actor, row)) throw notFound('Solution');
   if (!canModify(actor, row)) throw new AppError('forbidden', 'Only the owner can modify this solution');
@@ -144,7 +143,6 @@ export async function getSolution(db: D1Database, viewer: Viewer, id: string): P
 }
 
 export async function getSolutionByPath(db: D1Database, viewer: Viewer, username: string, slug: string): Promise<Solution> {
-  requireReader(viewer);
   const row = await db
     .prepare(`${SELECT_SOLUTION} WHERE u.username = ?1 AND s.slug = ?2`)
     .bind(username.toLowerCase(), slug.toLowerCase())
@@ -184,7 +182,7 @@ function updateStmt(db: D1Database, solutionId: string, authorId: string, type: 
 }
 
 export async function createSolution(db: D1Database, viewer: Viewer, input: SolutionInput): Promise<Solution> {
-  const actor = requireWriter(viewer);
+  const actor = requireSignedIn(viewer);
   const id = newId();
   const now = nowIso();
   const resources = input.resources ?? [];
@@ -409,7 +407,6 @@ const SEARCH_FIELDS: { expr: string; weight: number }[] = [
  * term be bound once yet referenced by several expressions.
  */
 export async function searchSolutions(db: D1Database, viewer: Viewer, params: SearchParams): Promise<SearchResult> {
-  requireReader(viewer);
   const binds: unknown[] = [];
   const bind = (v: unknown) => {
     binds.push(v);
@@ -492,7 +489,6 @@ export interface CategoryValue {
  * solutions the viewer cannot access.
  */
 export async function listCategories(db: D1Database, viewer: Viewer, visibility?: Visibility[]) {
-  requireReader(viewer);
   const binds: unknown[] = [];
   const bind = (v: unknown) => `?${binds.push(v)}`;
   let visible = visibleSql(viewer, bind);

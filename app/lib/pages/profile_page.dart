@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../api/models.dart';
 import '../app_scope.dart';
+import '../config.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import '../widgets/pager.dart';
 import '../widgets/solution_card.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -22,7 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   int _total = 0;
   String? _status; // null = all
   bool _loading = true;
-  bool _loadingMore = false;
+  int _page = 1;
   Object? _error;
   int _request = 0;
 
@@ -38,6 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (old.username != widget.username) {
       _profile = null;
       _status = null;
+      _page = 1;
       _load();
     }
   }
@@ -59,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final results = await Future.wait([
         api.profile(widget.username),
-        api.userSolutions(widget.username, _query(1)),
+        api.userSolutions(widget.username, _query(_page)),
       ]);
       if (!mounted || id != _request) return;
       final page = results[1] as SolutionPage;
@@ -75,22 +79,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _loadMore() async {
-    setState(() => _loadingMore = true);
-    try {
-      final page = await AppScope.of(context).api
-          .userSolutions(widget.username, _query(_items.length ~/ 24 + 1));
-      if (!mounted) return;
-      final seen = _items.map((s) => s.id).toSet();
-      setState(() {
-        _items = [..._items, ...page.items.where((s) => !seen.contains(s.id))];
-        _total = page.total;
-      });
-    } catch (e) {
-      if (mounted) showMessage(context, e.toString());
-    } finally {
-      if (mounted) setState(() => _loadingMore = false);
-    }
+  void _goToPage(int page) {
+    if (page == _page || page < 1) return;
+    _page = page;
+    _load();
   }
 
   @override
@@ -136,6 +128,27 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           const SizedBox(height: 10),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () async {
+                              final link =
+                                  '${AppConfig.apiBaseUrl}/${p.user.username}';
+                              await Clipboard.setData(ClipboardData(text: link));
+                              if (context.mounted) {
+                                showMessage(context, 'Profile link copied: $link');
+                              }
+                            },
+                            icon: const Icon(Icons.link, size: 16),
+                            label: Text(
+                              '/${p.user.username}',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 18,
                             runSpacing: 4,
@@ -176,7 +189,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       active: _status == value,
                       onTap: () {
                         if (_status == value) return;
-                        setState(() => _status = value);
+                        setState(() {
+                          _status = value;
+                          _page = 1;
+                        });
                         _load();
                       },
                     ),
@@ -208,13 +224,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 opacity: _loading ? 0.6 : 1,
                 child: SolutionGrid(items: _items),
               ),
-              if (_items.length < _total)
-                Center(
-                  child: OutlinedButton(
-                    onPressed: _loadingMore ? null : _loadMore,
-                    child: Text(_loadingMore ? 'Loading…' : 'Load more'),
-                  ),
-                ),
+              Pager(
+                page: _page,
+                total: _total,
+                pageSize: _query(1).limit,
+                busy: _loading,
+                onPage: _goToPage,
+              ),
             ],
           ],
         ),

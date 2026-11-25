@@ -44,8 +44,8 @@ Future<void> showMcpDialog(BuildContext context) {
               const SizedBox(height: 12),
               const Text(
                 'A remote MCP server will let your own agents search public solutions, read their resources and '
-                'history, and — with permissions you grant and can revoke — create solutions and post progress '
-                'updates on your behalf.',
+                'history, and — only if you choose to connect it, and revocably — create solutions and post '
+                'progress updates as you. It will give no one extra rights.',
               ),
               const SizedBox(height: 10),
               const Text(

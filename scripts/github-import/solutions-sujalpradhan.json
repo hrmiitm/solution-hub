@@ -1,0 +1,219 @@
+[
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/JurisFlow-AI", "title": "JurisFlow AI: Legal Intelligence", "visibility": "public", "type": "demo",
+    "summary": "A multi-agent legal platform for Indian law, supporting legal research, drafting, document analysis and client-related workflows.",
+    "category": ["Legal Technology"],
+    "keywords": ["legal ai", "multi-agent", "fastapi", "next.js", "postgresql", "indian law"],
+    "technologies": ["FastAPI", "Next.js", "React", "PostgreSQL", "Supabase", "Gemini", "AIPipe"],
+    "overview": "A legal practice platform for Indian law firms with four AI agents behind a shared secure gateway. The stack is a FastAPI and PostgreSQL back end with a Next.js dashboard for lawyer, client and firm-owner roles.",
+    "capabilities": [
+      "Research agent: searches the web and Indian Kanoon, reads judgments and returns precedents with analysis.",
+      "Draft agent: turns a prompt into a semi-finished court-style document exported as `.docx`.",
+      "Summarizer agent: extracts text from PDFs, documents or images and flags key clauses, dates and risks.",
+      "Client-update agent: drafts a plain-English case update for a lawyer to review and send.",
+      "Safeguards on every request: login and role checks, rate limiting and a legal-only guard, with a Gemini fallback model."
+    ],
+    "useCases": [
+      "Speeding up first-pass case research and drafting in a law practice.",
+      "A reference architecture for role-based, multi-agent AI applications."
+    ],
+    "links": [
+      { "label": "Demo frontend", "url": "https://frontend-one-sigma-50.vercel.app/", "type": "demo" },
+      { "label": "AI agents architecture", "path": "AI_AGENTS_ARCHITECTURE.md", "type": "documentation" },
+      { "label": "API documentation", "path": "API_DOCUMENTATION.md", "type": "documentation" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/Multimodal-Data-Analyst-Agent", "title": "Multimodal Data Analyst Agent", "visibility": "public", "type": "other",
+    "summary": "An agentic data analysis backend that processes multiple file formats, generates Python analysis code and produces insights and visualizations using isolated Docker execution.",
+    "category": ["Data Analytics"],
+    "keywords": ["data analysis", "gemini", "fastapi", "docker", "visualization", "code generation"],
+    "technologies": ["Python", "FastAPI", "Gemini", "Docker"],
+    "overview": "Users upload data files with a natural-language question. The service asks Gemini to write Python analysis code and runs that code inside a Docker container, returning results and charts.",
+    "capabilities": [
+      "Accepts CSV, JSON, HTML, ZIP, Excel, text and other file types in one request.",
+      "Generates analysis code from the question for statistical, network, time-series and machine-learning tasks.",
+      "Executes generated code in an isolated container with resource limits and code validation.",
+      "Returns structured results with visualizations as base64 images.",
+      "Automatic OpenAPI documentation and request logging."
+    ],
+    "useCases": [
+      "Ad-hoc analysis of uploaded datasets without writing code.",
+      "A pattern for sandboxed execution of LLM-generated code."
+    ],
+    "links": [
+      { "label": "Docker optimizations", "path": "DOCKER_OPTIMIZATIONS.md", "type": "markdown" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/TDS-Virtual-TA", "title": "Virtual Teaching Assistant", "visibility": "public", "type": "demo",
+    "summary": "A retrieval-augmented teaching assistant for IIT Madras's Tools in Data Science course, using course and discussion content to answer student questions.",
+    "category": ["Education Technology"],
+    "keywords": ["rag", "faiss", "education", "fastapi", "teaching assistant", "discourse"],
+    "technologies": ["Python", "FastAPI", "FAISS", "Promptfoo", "Render"],
+    "overview": "A virtual TA that collects course material and forum discussions, indexes them in a FAISS vector store and serves question answering with references through a FastAPI API.",
+    "capabilities": [
+      "Scrapers for the course website and the IITM Discourse forum.",
+      "A preprocessing pipeline that cleans the content and builds the vector index.",
+      "A `/query` endpoint that returns an answer with relevant references.",
+      "A Promptfoo configuration for evaluating the assistant's answers.",
+      "Deployment configuration for Render."
+    ],
+    "useCases": [
+      "Answering recurring student questions from course and forum content.",
+      "A template for course-specific RAG assistants."
+    ],
+    "links": [
+      { "label": "Demo", "url": "https://tds-virtual-ta-tan.vercel.app/", "type": "demo" },
+      { "label": "Course website", "url": "https://tds.s-anand.net/", "type": "documentation" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/NepalAI-Movie", "title": "NepalAI Movie Discovery", "visibility": "public", "type": "other",
+    "summary": "A Nepali movie discovery application featuring natural-language search and personalized movie recommendations.",
+    "category": ["Media and Entertainment"],
+    "keywords": ["recommendation", "llm", "django", "react", "postgresql", "nepali cinema"],
+    "technologies": ["Django REST Framework", "React", "PostgreSQL", "Google Gemini API", "JWT"],
+    "overview": "A web application for exploring Nepali cinema. A React front end talks to a Django REST back end that uses the Gemini API for conversational search. The README marks the project as in development.",
+    "capabilities": [
+      "AI-powered search that understands conversational queries.",
+      "Personalised recommendations based on user preferences.",
+      "A movie database with plot summaries, ratings and genre categories.",
+      "Genre browsing and a responsive interface.",
+      "JWT-based user authentication and profiles."
+    ],
+    "useCases": [
+      "Helping viewers find Nepali films by describing what they want.",
+      "A reference for combining an LLM with a recommender in a Django and React stack."
+    ],
+    "links": []
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/spatial-studio", "title": "Spatial Studio: Browser Hand Tracking", "visibility": "public", "type": "other",
+    "summary": "Browser-local hand tracking with QR-paired phone controls, spatial ink, maths demonstrations and gesture-based pottery.",
+    "category": ["Computer Vision"],
+    "keywords": ["hand tracking", "computer vision", "mediapipe", "webrtc", "cloudflare workers", "gesture"],
+    "technologies": ["TypeScript", "MediaPipe", "Cloudflare Workers", "Durable Objects", "WebSockets", "OpenCV"],
+    "overview": "Camera frames are processed in the browser on the device that owns the camera. A separate Cloudflare Worker with one Durable Object per pairing relays phone motion, touch and hand landmarks over WebSockets.",
+    "capabilities": [
+      "Hand tracking on the laptop with MediaPipe on CPU/WASM, and on the phone with GPU and CPU fallback.",
+      "QR-code pairing of a phone as a controller; codes are single-use and expire after ten minutes.",
+      "Creative modes: spatial drawing, maths demonstrations and gesture-based pottery.",
+      "A tracking lab for two-camera fingertip tracking with stereo calibration scripts.",
+      "A timing panel that reports model startup, inference and relay round trip."
+    ],
+    "useCases": [
+      "Exploring camera-based, touch-free interaction in the browser.",
+      "A reference for privacy-preserving, on-device vision with a lightweight relay."
+    ],
+    "note": "The README describes the tracking lab as a measurement experiment, not a validated sculpting tool.",
+    "links": []
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/content-dna-analyzer", "title": "Content DNA Analyzer", "visibility": "public", "type": "demo",
+    "summary": "Measures how a video is built and produces timestamped, evidence-backed suggestions for improving retention and reach.",
+    "category": ["Media Analytics"],
+    "keywords": ["video analysis", "youtube", "retention", "llm", "content analytics", "fastapi"],
+    "technologies": ["Python", "FastAPI", "uv", "LLM critique", "HTML"],
+    "overview": "Give it a YouTube URL or a video file and it measures pacing, hook, speech, sound, visual formats and narrative structure, then builds a creative fingerprint and a critique checked against the measured data.",
+    "capabilities": [
+      "A scorecard over 16 researched drivers of retention and reach, each marked as sourced, heuristic or genre-range based.",
+      "Pain points pinned to the timeline and a frame-by-frame strip with one keyframe per shot.",
+      "Optional fixes written by an LLM that cite the measured evidence.",
+      "Static demos that need no server, plus a command-line tool and a documented HTTP API."
+    ],
+    "useCases": [
+      "Reviewing a video's structure before publishing.",
+      "Comparing a video against genre norms."
+    ],
+    "note": "The README describes the checks as guidance to test, not predicted performance.",
+    "links": [
+      { "label": "Live site", "url": "https://sujalpradhan.github.io/content-dna-analyzer/", "type": "demo" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/Multi-Agent-Analytics-Agent", "title": "Multi-Agent Business Analytics", "visibility": "organization", "type": "other",
+    "summary": "A multi-agent backend enabling natural-language analytics across Google Analytics 4 and SEO data.",
+    "category": ["Marketing Analytics"],
+    "keywords": ["ga4", "seo", "fastapi", "litellm", "multi-agent", "analytics"],
+    "technologies": ["Python", "FastAPI", "LiteLLM", "Google Analytics 4", "Google Sheets API", "Docker"],
+    "overview": "An orchestrator routes a plain-English question to an analytics agent (Google Analytics 4) or an SEO agent (data in Google Sheets) and formats the answer. The repository includes a technical document.",
+    "capabilities": [
+      "Natural-language queries over GA4 properties through a `/query` endpoint.",
+      "Separate analytics and SEO agents with an orchestrator and response formatter.",
+      "LLM access through an OpenAI-compatible client with LiteLLM.",
+      "Health check, interactive API docs and a Dockerfile."
+    ],
+    "useCases": [
+      "Letting marketers ask questions of their analytics without building reports.",
+      "A template for agent orchestration over business data sources."
+    ],
+    "links": [
+      { "label": "Technical document", "path": "Repo-Tech-Document.md", "type": "markdown" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/automatic-brand-placement-audit", "title": "Automatic Brand Placement Audit", "visibility": "organization", "type": "demo",
+    "summary": "A video-analysis pipeline measuring sponsor exposure in football broadcasts using OCR, frame processing and multilingual text matching.",
+    "category": ["Media Analytics"],
+    "keywords": ["ocr", "computer vision", "ffmpeg", "sports analytics", "brand detection", "apple vision"],
+    "technologies": ["Python", "Apple Vision OCR", "ocrmac", "FFmpeg", "JavaScript"],
+    "overview": "Measures which sponsor boards appear in football broadcast video, for how long, and how much of that falls around the goals. The OCR stage runs on macOS with Apple Vision.",
+    "capabilities": [
+      "Extracts one frame per second with FFmpeg and reads each frame with Apple Vision, including tiled passes and a Chinese-language pass.",
+      "Matches recognised text to a brand lexicon.",
+      "Hand-labelled evidence, versioned benchmark runs and a cost model with sources are kept in the repository.",
+      "A data-story site presents the method and findings."
+    ],
+    "useCases": [
+      "Auditing sponsor visibility in broadcast footage.",
+      "A reference for costed, benchmarked video-OCR pipelines."
+    ],
+    "note": "The README reports about 14 minutes and roughly $0.26-$0.31 of Mac host time per hour of 1080p video on its test machine. Match footage and raw OCR output are not in the repository.",
+    "links": [
+      { "label": "Case study", "url": "https://sujalpradhan.github.io/automatic-brand-placement-audit/", "type": "demo" },
+      { "label": "Benchmarks", "path": "BENCHMARKS.md", "type": "markdown" },
+      { "label": "Cost model", "path": "COSTS.md", "type": "markdown" }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/Intelli-Credit-AI", "title": "Intelli-Credit AI", "visibility": "private", "type": "other",
+    "summary": "A credit-assessment workflow integrating financial document extraction, external research, risk analysis and credit appraisal memorandum generation.",
+    "category": ["Financial Analytics"],
+    "keywords": ["finance", "credit risk", "gemini", "fastapi", "document intelligence", "loan appraisal"],
+    "technologies": ["Python", "FastAPI", "Gemini", "PyMuPDF", "pandas", "Serper API"],
+    "overview": "A FastAPI service that automates a loan appraisal pipeline in three stages: parse financial documents, gather external intelligence, then score the applicant and produce a Credit Appraisal Memo.",
+    "capabilities": [
+      "Document ingestion for PDF and CSV, with an LLM extracting structured financial data.",
+      "External research via web search and scraping, followed by LLM risk analysis.",
+      "Five Cs credit scoring and decision logic.",
+      "Credit Appraisal Memo generation as Word and PDF downloads."
+    ],
+    "useCases": [
+      "Speeding up first-pass credit appraisal.",
+      "A reference pipeline for document-to-decision workflows."
+    ],
+    "links": [
+      { "label": "Presentation (PDF)", "path": "Intelli-Credit AI — Presentation.pdf", "type": "pdf", "raw": true }
+    ]
+  },
+  {
+    "account": "sujalpradhan", "repo": "SujalPradhan/Prediction-for-a-Telemarketing-Service", "title": "Telemarketing Prediction Service", "visibility": "private", "type": "other",
+    "summary": "A machine-learning application for predicting whether customers are likely to subscribe to a term deposit following a telemarketing campaign.",
+    "category": ["Predictive Analytics"],
+    "keywords": ["machine learning", "xgboost", "flask", "classification", "term deposit"],
+    "technologies": ["Python", "Flask", "scikit-learn", "XGBoost", "pandas", "NumPy"],
+    "overview": "A machine-learning practice project: models trained on historical campaign data are served through a Flask web form where customer details are entered to get a prediction.",
+    "capabilities": [
+      "Data preprocessing and a saved preprocessing pipeline.",
+      "Experiments with logistic regression, random forest and XGBoost.",
+      "Evaluation with accuracy, precision, recall and F1.",
+      "A Flask web application for interactive predictions."
+    ],
+    "useCases": [
+      "Prioritising customers for outreach in a campaign.",
+      "A small end-to-end example of training and serving a tabular classifier."
+    ],
+    "links": []
+  }
+]

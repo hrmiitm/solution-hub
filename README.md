@@ -8,7 +8,6 @@ business solutions.
 - **Shareable URLs:** `/<username>/<solution-slug>`, like GitHub repositories
 
 See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
-See [TEST_REPORT.md](TEST_REPORT.md) for what was tested.
 
 ## Features (Phase 1)
 
@@ -97,14 +96,43 @@ owns the web client:
 cd worker && npm install                               # wrangler, esbuild, typescript
 npx wrangler d1 migrations apply solutionhub --local   # local SQLite in worker/.wrangler
 cd .. && scripts/dev-env.sh                            # worker/.dev.vars from .env
-node scripts/seed.mjs                                  # optional: fictional sample data
+node scripts/seed.mjs                                  # optional: GitHub-import fixtures (replaces the old fictional data)
 scripts/build.sh web                                   # Flutter web + Worker bundle -> worker/dist
 cd worker && npm run dev                               # http://localhost:8788
 ```
 
 The seed's four users have no Google identity, so they can never sign in. They
-only populate Explore. After changing Dart code, run `scripts/build.sh web`
+own the 33 repository-backed solutions (below) and a few clearly labelled
+*simulated* history events (completed, reopened, updated after completion). After changing Dart code, run `scripts/build.sh web`
 again. After changing only Worker code, `cd worker && npm run bundle` is enough.
+
+## Initial data
+
+`scripts/github-import/` holds the initial dataset (four users and 33 solutions,
+built from each repository's README, source and GitHub API metadata) and
+`scripts/import.mjs` loads it. There is no approval step: the data is simply in
+the database, with the Public / Organization / Private visibility listed in the
+dataset.
+
+```bash
+cp scripts/github-import/accounts.example.json scripts/github-import/accounts.json   # then put the real owner emails in it (git-ignored)
+node scripts/import.mjs validate                                # dataset checks
+node scripts/seed.mjs                                           # local: backup, replace the old demo data, seed (+ labelled simulated history)
+node scripts/import.mjs seed --target remote --confirm-production
+node scripts/import.mjs status --target remote
+```
+
+Initial status: for each user the two most recently pushed repositories are
+Ongoing and all others Completed (`ONGOING_PER_ACCOUNT` in `lib.mjs`).
+
+`seed` backs up first (`backups/`, git-ignored), removes only the old fictional
+demo users and their solutions, and is idempotent (deterministic ids,
+`INSERT OR IGNORE`), so owners' edits are never overwritten. Production never
+gets simulated history. The seeded users have no Google identity; the first
+Google sign-in whose verified email (and `hd` domain) matches takes the account
+over and fills in the name, email and profile picture from Google. Imports keep
+the repository's real created/pushed dates and a history entry "Imported from
+GitHub". Card visibility never changes a GitHub repository's visibility.
 
 ## Tests
 
@@ -147,6 +175,17 @@ It points to a keystore outside the repo
 (`~/.config/solutionhub/solutionhub-release.jks`). Back that keystore up: its
 SHA-1 is registered with Google, so losing it means registering a new one.
 Without `key.properties`, release builds fall back to the debug key.
+
+## Rate limits
+
+| Scope | Limit | Where |
+|---|---|---|
+| Any `/api/*` request, per client IP | 600 per minute, per Worker isolate (best effort) | in memory |
+| Google sign-in, per client IP | 20 per 10 minutes (every attempt counts) | D1 |
+| Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 120 per 10 minutes, per user | D1 |
+| Request body | 256 KB | Worker |
+
+Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volumetric abuse.
 
 ## Known limitations
 
