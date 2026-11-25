@@ -299,6 +299,31 @@ npx wrangler pages project create solutionhub-hrm --production-branch main
 printf '%s' "<web-client-id>[,<android-client-id>]" | npx wrangler pages secret put GOOGLE_CLIENT_IDS --project-name solutionhub-hrm
 ```
 
+### Releases (Android APK)
+
+Pushing a tag such as `v0.1.0` (or running the workflow by hand) makes
+`.github/workflows/release-android.yml` build a signed release APK and attach
+it, with a SHA-256 file, to a GitHub Release. The tag must match `version:` in
+`app/pubspec.yaml`. Anyone can install the APK from the Releases page.
+
+Google sign-in only works in an APK signed with the key whose SHA-1 is
+registered in Google Cloud, so the workflow signs with that key and refuses to
+publish if the fingerprint differs. One-time setup, from a machine that has the
+release keystore and `gh auth login`:
+
+```bash
+scripts/set-release-secrets.sh                      # stores the keystore, passwords and public IDs in GitHub
+gh workflow run release-android.yml -f tag=v0.1.0   # or: git tag v0.1.0 && git push origin v0.1.0
+```
+
+| Name | Kind | Source |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | secret | `app/android/key.properties` |
+| `GOOGLE_OAUTH_WEB_CLIENT_ID`, `APP_URL` | variable | `.env` |
+
+To release a new version, raise `version:` in `app/pubspec.yaml` (also bump the
+`+build` number), commit, then tag.
+
 ### Android
 
 `scripts/build.sh apk` builds a release APK (`build/solutionhub.apk`) pointed
