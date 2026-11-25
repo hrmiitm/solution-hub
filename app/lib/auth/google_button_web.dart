@@ -5,16 +5,20 @@ Widget googleSignInButton({
   required VoidCallback onPressed,
   required bool busy,
 }) {
-  return SizedBox(
-    height: 44,
-    child: gsi.renderButton(
-      configuration: gsi.GSIButtonConfiguration(
-        type: gsi.GSIButtonType.standard,
-        theme: gsi.GSIButtonTheme.outline,
-        size: gsi.GSIButtonSize.large,
-        text: gsi.GSIButtonText.continueWith,
-        shape: gsi.GSIButtonShape.rectangular,
-        minimumWidth: 260,
+  return Builder(
+    builder: (context) => SizedBox(
+      height: 44,
+      child: gsi.renderButton(
+        configuration: gsi.GSIButtonConfiguration(
+          type: gsi.GSIButtonType.standard,
+          theme: Theme.of(context).brightness == Brightness.dark
+              ? gsi.GSIButtonTheme.filledBlack
+              : gsi.GSIButtonTheme.outline,
+          size: gsi.GSIButtonSize.large,
+          text: gsi.GSIButtonText.continueWith,
+          shape: gsi.GSIButtonShape.rectangular,
+          minimumWidth: 260,
+        ),
       ),
     ),
   );

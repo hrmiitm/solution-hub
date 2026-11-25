@@ -237,6 +237,28 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal(result.data.scope, read);
   });
 
+  test('Claude can connect using its published client identity and exact callback', async () => {
+    const client = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
+    const callback = 'https://claude.ai/api/mcp/auth_callback';
+    const auth = authorization(client, read, callback);
+    auth.query.delete('scope');
+    const details = await request('/api/oauth/authorize?' + auth.query);
+    assert.equal(details.status, 200);
+    assert.equal(details.data.client.name, 'Claude');
+    assert.equal(details.data.client.verified, true);
+
+    const wrongCallback = authorization(client, read, 'https://claude.ai/api/mcp/other_callback');
+    const rejected = await request('/api/oauth/authorize?' + wrongCallback.query);
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.data.error.details?.redirectTo, undefined);
+
+    const code = await approve(auth, owner, false);
+    const result = await exchange(auth, code);
+    assert.equal(result.status, 200);
+    assert.equal(result.data.scope, read);
+    assert.equal((await rpc(result.data.access_token, 'tools/list')).data.result.tools.length, 9);
+  });
+
   test('tools, history, prompts and categories enforce visibility and ownership', async () => {
     const client = (await register()).client_id;
     const [own, same, other, outside] = await Promise.all([

@@ -350,9 +350,9 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                                 valueListenable: _title,
                                 builder: (context, value, _) => Text(
                                   'URL: /${AppScope.of(context).auth.me?.username ?? 'you'}/${_slugPreview(value.text)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11.5,
-                                    color: AppColors.muted,
+                                    color: context.colors.muted,
                                   ),
                                 ),
                               ),
@@ -395,13 +395,15 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                               constraints: const BoxConstraints(minHeight: 180),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.line),
+                                border: Border.all(color: context.colors.line),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: _description.text.trim().isEmpty
-                                  ? const Text(
+                                  ? Text(
                                       'Nothing to preview yet.',
-                                      style: TextStyle(color: AppColors.muted),
+                                      style: TextStyle(
+                                        color: context.colors.muted,
+                                      ),
                                     )
                                   : MarkdownView(_description.text),
                             )
@@ -459,11 +461,11 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                               runSpacing: 6,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                const Text(
+                                Text(
                                   'Suggested:',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.muted,
+                                    color: context.colors.muted,
                                   ),
                                 ),
                                 for (final k in _suggested)
@@ -571,16 +573,16 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: _serverErrors['visibility'] != null
-                                          ? AppColors.danger
-                                          : AppColors.muted,
+                                          ? context.colors.danger
+                                          : context.colors.muted,
                                     ),
                                   ),
                                   if (_serverErrors['visibility'] != null)
                                     Text(
                                       _serverErrors['visibility']!,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.danger,
+                                        color: context.colors.danger,
                                       ),
                                     ),
                                 ],
@@ -607,11 +609,11 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                             fontSize: 15,
                           ),
                         ),
-                        subtitle: const Text(
+                        subtitle: Text(
                           'Optional: client, thumbnail, industry, function, category, technology',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.muted,
+                            color: context.colors.muted,
                           ),
                         ),
                         childrenPadding: const EdgeInsets.fromLTRB(
@@ -697,9 +699,9 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
             ),
           ),
           Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: AppColors.line)),
+            decoration: BoxDecoration(
+              color: context.colors.paper,
+              border: Border(top: BorderSide(color: context.colors.line)),
             ),
             child: SafeArea(
               top: false,
@@ -759,9 +761,9 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (_resources.isEmpty)
-            const Text(
+            Text(
               'Add repositories, demos, videos, slides, documents or models. Previews are shown where possible.',
-              style: TextStyle(color: AppColors.muted, fontSize: 13),
+              style: TextStyle(color: context.colors.muted, fontSize: 13),
             ),
           for (final (i, r) in _resources.indexed) _resourceRow(i, r, compact),
         ],
@@ -822,7 +824,7 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
                 : null,
             icon: Icon(
               isPrimary ? Icons.star : Icons.star_border,
-              color: isPrimary ? AppColors.amber : null,
+              color: isPrimary ? context.colors.amber : null,
             ),
           ),
         ),
@@ -843,7 +845,7 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
       padding: compact ? const EdgeInsets.all(10) : EdgeInsets.zero,
       decoration: compact
           ? BoxDecoration(
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.colors.line),
               borderRadius: BorderRadius.circular(9),
             )
           : null,
@@ -900,14 +902,14 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           if (required)
-            const TextSpan(
+            TextSpan(
               text: ' *',
-              style: TextStyle(color: AppColors.danger),
+              style: TextStyle(color: context.colors.danger),
             ),
           if (hint != null)
             TextSpan(
               text: '  $hint',
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              style: TextStyle(fontSize: 12, color: context.colors.muted),
             ),
         ],
       ),

@@ -34,7 +34,7 @@ class ResourcePreview extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: r.type == 'pdf' ? 4 / 3 : 16 / 9,
                 child: ColoredBox(
-                  color: const Color(0xFF172B46),
+                  color: context.colors.bg,
                   child: EmbedFrame(url: embed, sandbox: r.type != 'pdf'),
                 ),
               ),
@@ -124,7 +124,7 @@ class _FetchedTextState extends State<_FetchedText> {
         return Container(
           constraints: const BoxConstraints(maxHeight: 460),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.colors.line),
             borderRadius: BorderRadius.circular(9),
           ),
           child: Scrollbar(
@@ -167,13 +167,13 @@ class FallbackLink extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(9),
       ),
       child: Row(
         children: [
-          Icon(resourceIcon(resource.type), color: AppColors.accent),
+          Icon(resourceIcon(resource.type), color: context.colors.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -185,7 +185,7 @@ class FallbackLink extends StatelessWidget {
                 ),
                 Text(
                   reason ?? host,
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                  style: TextStyle(fontSize: 12, color: context.colors.muted),
                 ),
               ],
             ),

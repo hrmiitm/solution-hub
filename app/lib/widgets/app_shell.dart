@@ -7,7 +7,7 @@ import '../theme.dart';
 import 'common.dart';
 import 'mcp_dialog.dart';
 
-/// Top navigation (Explore, My profile, New solution, MCP, account menu)
+/// Top navigation, connection setup, appearance, and account menu
 /// around every signed-in page.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.location, required this.child});
@@ -16,9 +16,11 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = AppScope.of(context).auth;
+    final scope = AppScope.watchAppearance(context);
+    final auth = scope.auth;
     final me = auth.me;
     final compact = MediaQuery.sizeOf(context).width < kCompactWidth;
+    final narrow = MediaQuery.sizeOf(context).width < 450;
     final onExplore = location == '/';
     final onProfile = me != null && location == '/${me.username}';
 
@@ -28,10 +30,10 @@ class AppShell extends StatelessWidget {
       bool active,
       VoidCallback onTap,
     ) {
-      final color = active ? AppColors.accent : AppColors.ink;
+      final color = active ? context.colors.accent : context.colors.ink;
       final style = TextButton.styleFrom(
         foregroundColor: color,
-        backgroundColor: active ? AppColors.soft : null,
+        backgroundColor: active ? context.colors.soft : null,
         padding: EdgeInsets.symmetric(
           horizontal: compact ? 8 : 12,
           vertical: 10,
@@ -43,7 +45,7 @@ class AppShell extends StatelessWidget {
               onPressed: onTap,
               icon: Icon(icon, color: color, size: 21),
               style: IconButton.styleFrom(
-                backgroundColor: active ? AppColors.soft : null,
+                backgroundColor: active ? context.colors.soft : null,
               ),
             )
           : TextButton(onPressed: onTap, style: style, child: Text(label));
@@ -53,13 +55,15 @@ class AppShell extends StatelessWidget {
       body: Column(
         children: [
           Material(
-            color: Colors.white,
+            color: context.colors.paper,
             child: SafeArea(
               bottom: false,
               child: Container(
                 height: compact ? 56 : 62,
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: AppColors.line)),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: context.colors.line),
+                  ),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 24),
                 child: Center(
@@ -80,12 +84,12 @@ class AppShell extends StatelessWidget {
                                   width: 30,
                                   height: 30,
                                   decoration: BoxDecoration(
-                                    color: AppColors.accent,
+                                    color: context.colors.accent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.hub,
-                                    color: Colors.white,
+                                    color: context.colors.onAccent,
                                     size: 18,
                                   ),
                                 ),
@@ -105,26 +109,55 @@ class AppShell extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: compact ? 6 : 22),
-                        navButton(
-                          'Explore',
-                          Icons.explore_outlined,
-                          onExplore,
-                          () => context.go('/'),
-                        ),
-                        if (me != null)
+                        if (!narrow)
+                          navButton(
+                            'Explore',
+                            Icons.explore_outlined,
+                            onExplore,
+                            () => context.go('/'),
+                          ),
+                        if (me != null && !compact)
                           navButton(
                             'My profile',
                             Icons.person_outline,
                             onProfile,
                             () => context.go('/${me.username}'),
                           ),
-                        navButton(
-                          'MCP',
-                          Icons.hub_outlined,
-                          false,
-                          () => showMcpDialog(context),
+                        TextButton(
+                          onPressed: () => showMcpDialog(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: context.colors.ink,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: compact ? 8 : 12,
+                            ),
+                          ),
+                          child: const Text('Connect to agent'),
                         ),
                         const Spacer(),
+                        PopupMenuButton<ThemeMode>(
+                          tooltip: 'Appearance',
+                          offset: const Offset(0, 44),
+                          icon: Icon(switch (scope.themeMode) {
+                            ThemeMode.system => Icons.brightness_auto_outlined,
+                            ThemeMode.light => Icons.light_mode_outlined,
+                            ThemeMode.dark => Icons.dark_mode_outlined,
+                          }),
+                          onSelected: scope.onThemeChanged,
+                          itemBuilder: (_) => [
+                            for (final mode in ThemeMode.values)
+                              CheckedPopupMenuItem(
+                                value: mode,
+                                checked: scope.themeMode == mode,
+                                child: PointerInterceptor(
+                                  child: Text(switch (mode) {
+                                    ThemeMode.system => 'System',
+                                    ThemeMode.light => 'Light',
+                                    ThemeMode.dark => 'Dark',
+                                  }),
+                                ),
+                              ),
+                          ],
+                        ),
                         if (me == null)
                           FilledButton(
                             onPressed: () => context.go(
@@ -174,32 +207,32 @@ class AppShell extends StatelessWidget {
                                     children: [
                                       Text(
                                         me.displayName,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.w700,
-                                          color: AppColors.ink,
+                                          color: context.colors.ink,
                                         ),
                                       ),
                                       Text(
                                         '@${me.username}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: AppColors.muted,
+                                          color: context.colors.muted,
                                         ),
                                       ),
                                       if (me.email.isNotEmpty)
                                         Text(
                                           me.email,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.muted,
+                                            color: context.colors.muted,
                                           ),
                                         ),
                                       if (me.orgDomain != null)
                                         Text(
                                           'Organization: ${me.orgDomain}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.muted,
+                                            color: context.colors.muted,
                                           ),
                                         ),
                                     ],

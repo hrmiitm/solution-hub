@@ -40,9 +40,9 @@ class SolutionCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           capitalize(s.type),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.muted,
+                            color: context.colors.muted,
                           ),
                         ),
                         const Spacer(),
@@ -71,9 +71,9 @@ class SolutionCard extends StatelessWidget {
                         s.summary,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF516078),
+                          color: context.colors.tagInk,
                           height: 1.45,
                         ),
                       ),
@@ -118,10 +118,7 @@ class SolutionCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Updated ${relativeDate(s.updatedAt)}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.muted,
-                    ),
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
                 ],
               ),

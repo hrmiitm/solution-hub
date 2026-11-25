@@ -78,7 +78,7 @@ class _TagInputState extends State<TagInput> {
                       widget.onChanged([...widget.values]..remove(v)),
                   deleteButtonTooltipMessage: 'Remove',
                   visualDensity: VisualDensity.compact,
-                  backgroundColor: AppColors.tagBg,
+                  backgroundColor: context.colors.tagBg,
                 ),
             ],
           ),

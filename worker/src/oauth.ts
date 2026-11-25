@@ -46,6 +46,10 @@ export const resourceMetadataUrl = (url: URL) => `${url.origin}/.well-known/oaut
 // for Codex). Keep these trusted registrations available when the metadata
 // host blocks machine-to-machine fetches.
 const BUILTIN_CLIENTS = {
+  'https://claude.ai/oauth/mcp-oauth-client-metadata': {
+    client_name: 'Claude',
+    redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+  },
   'https://chatgpt.com/oauth/client.json': {
     client_name: 'ChatGPT',
     redirect_uris: ['https://chatgpt.com/connector_platform_oauth_redirect'],
@@ -328,11 +332,11 @@ export async function checkAuthorizationRequest(env: Env, url: URL): Promise<Aut
     throw err;
   }
   if (!client || (client.kind === 'cimd' && !reviewed)) {
-    throw new AppError('bad_request', 'Unknown application (client_id). Use dynamic client registration or a supported client metadata document.');
+    throw new AppError('bad_request', 'SolutionHub could not identify the requesting app. Start a new connection from the app or choose automatic client registration.');
   }
   const redirectUri = query.get('redirect_uri') ?? '';
   if (!redirectUri || !redirectUriAllowed(client, redirectUri)) {
-    throw new AppError('bad_request', 'The redirect_uri is not registered for this application.');
+    throw new AppError('bad_request', 'The app supplied a return address that is not registered with SolutionHub.');
   }
 
   const rawState = query.get('state');

@@ -36,7 +36,7 @@ class NetImage extends StatelessWidget {
           : SizedBox(
               height: height,
               width: width,
-              child: const ColoredBox(color: AppColors.tagBg),
+              child: ColoredBox(color: context.colors.tagBg),
             ),
     );
   }
@@ -53,8 +53,8 @@ class UserAvatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: AppColors.soft,
+      decoration: BoxDecoration(
+        color: context.colors.soft,
         shape: BoxShape.circle,
       ),
       child: Text(
@@ -62,7 +62,7 @@ class UserAvatar extends StatelessWidget {
         style: TextStyle(
           fontSize: size * 0.38,
           fontWeight: FontWeight.w700,
-          color: AppColors.accent,
+          color: context.colors.accent,
         ),
       ),
     );
@@ -81,11 +81,11 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final done = status == SolutionStatus.completed;
-    final fg = done ? AppColors.green : AppColors.amber;
+    final fg = done ? context.colors.green : context.colors.amber;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: done ? AppColors.greenBg : AppColors.amberBg,
+        color: done ? context.colors.greenBg : context.colors.amberBg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -134,15 +134,19 @@ class VisibilityBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(visibilityIcon(visibility), size: 13, color: AppColors.muted),
+          Icon(
+            visibilityIcon(visibility),
+            size: 13,
+            color: context.colors.muted,
+          ),
           const SizedBox(width: 3),
           Flexible(
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.muted,
+                color: context.colors.muted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -161,7 +165,7 @@ class TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.tagBg,
+      color: context.colors.tagBg,
       borderRadius: BorderRadius.circular(5),
       child: InkWell(
         onTap: onTap,
@@ -170,7 +174,7 @@ class TagChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           child: Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AppColors.tagInk),
+            style: TextStyle(fontSize: 11, color: context.colors.tagInk),
           ),
         ),
       ),
@@ -274,7 +278,7 @@ class MessageView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 34, color: AppColors.muted),
+            Icon(icon, size: 34, color: context.colors.muted),
             const SizedBox(height: 10),
             Text(
               title,
@@ -286,7 +290,7 @@ class MessageView extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.colors.muted),
               ),
             ],
             if (action != null) ...[const SizedBox(height: 14), action!],

@@ -47,8 +47,8 @@ class Pager extends StatelessWidget {
             style: FilledButton.styleFrom(
               minimumSize: const Size(36, 36),
               padding: EdgeInsets.zero,
-              disabledBackgroundColor: AppColors.accent,
-              disabledForegroundColor: Colors.white,
+              disabledBackgroundColor: context.colors.accent,
+              disabledForegroundColor: context.colors.onAccent,
             ),
             child: Text('$p', semanticsLabel: 'Page $p, current'),
           )
@@ -77,13 +77,18 @@ class Pager extends StatelessWidget {
               ),
               for (final p in pagerItems(page, pages))
                 p == null
-                    ? const Padding(
+                    ? Padding(
                         padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text('…', style: TextStyle(color: AppColors.muted)),
+                        child: Text(
+                          '…',
+                          style: TextStyle(color: context.colors.muted),
+                        ),
                       )
                     : numberButton(p),
               OutlinedButton(
-                onPressed: busy || page >= pages ? null : () => onPage(page + 1),
+                onPressed: busy || page >= pages
+                    ? null
+                    : () => onPage(page + 1),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [Text('Next'), Icon(Icons.chevron_right, size: 18)],
@@ -94,7 +99,7 @@ class Pager extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Page $page of $pages · $total solutions',
-            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            style: TextStyle(fontSize: 12, color: context.colors.muted),
           ),
         ],
       ),

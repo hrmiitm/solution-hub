@@ -30,12 +30,12 @@ class SignInPage extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.hub,
-                          color: Colors.white,
+                          color: context.colors.onAccent,
                           size: 28,
                         ),
                       ),
@@ -49,10 +49,10 @@ class SignInPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Create, track and discover projects, demos and business solutions.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.colors.muted),
                       ),
                       const SizedBox(height: 24),
                       if (auth.googleReady)
@@ -69,9 +69,9 @@ class SignInPage extends StatelessWidget {
                         ),
                       if (kIsWeb && auth.busy) ...[
                         const SizedBox(height: 12),
-                        const Text(
+                        Text(
                           'Signing in…',
-                          style: TextStyle(color: AppColors.muted),
+                          style: TextStyle(color: context.colors.muted),
                         ),
                       ],
                       if (auth.error != null) ...[
@@ -79,8 +79,8 @@ class SignInPage extends StatelessWidget {
                         Text(
                           auth.error!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.danger,
+                          style: TextStyle(
+                            color: context.colors.danger,
                             fontSize: 13,
                           ),
                         ),
@@ -91,11 +91,14 @@ class SignInPage extends StatelessWidget {
                         child: const Text('Browse public solutions'),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Sign in with Google to create solutions and see those shared with your organization. '
                         'SolutionHub receives only your name, email, profile picture and Workspace domain.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, color: AppColors.muted),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.colors.muted,
+                        ),
                       ),
                     ],
                   ),

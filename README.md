@@ -41,8 +41,10 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
   relevance-ranked), filters (status and type by default; category,
   technology, industry and function can be added via "Customize filters"),
   sorting and pagination.
-- Remote MCP for authenticated discovery and publishing. The **MCP** button
-  shows the connection URL and lets you manage connected apps.
+- Remote MCP for authenticated discovery and publishing. **Connect to agent**
+  shows the connection URL, setup for each client and your connected apps.
+- The appearance menu offers System, Light and Dark. SolutionHub remembers
+  your choice on the device.
 
 ## Connect an MCP client
 
@@ -50,9 +52,11 @@ Use **Streamable HTTP** with OAuth at
 `https://solutionhub-hrm.pages.dev/mcp`. For local development use
 `http://localhost:8788/mcp`.
 
-- **ChatGPT** or **Claude**: add the URL as a custom remote connector in the
-  client’s settings and select OAuth if prompted. Connector availability and
-  support for resources and prompts depend on the client and workspace.
+- **Claude**: under **Customize → Connectors**, add a custom connector with the
+  URL above and select **Use Claude’s published identity**.
+- **ChatGPT**: add the URL as a custom app and select OAuth if prompted.
+  Connector availability and support for resources and prompts depend on the
+  client and workspace.
 - **Claude Code**: run the command below, then open `/mcp` in Claude Code and
   authenticate SolutionHub.
 - **Codex**: add the server and run the login command below if needed.
@@ -72,7 +76,7 @@ reconnect while requesting both `solutions:read` and `solutions:write` if you
 want to grant write access. In Codex, use
 `codex mcp login solutionhub --scopes solutions:read,solutions:write`.
 
-Open **MCP → Connected apps** in SolutionHub to remove write access or
+Open **Connect to agent → Connected apps** in SolutionHub to remove write access or
 disconnect an app. Removing write access takes effect on existing tokens
 immediately. Disconnecting revokes the connection and its tokens.
 
@@ -105,7 +109,7 @@ Solution visibility and ownership are enforced by the same services used by
 the REST API.
 
 Dynamic client registration is available at `/oauth/register`. Built-in
-registrations for ChatGPT and Codex use their published Client ID Metadata
+registrations for Claude, ChatGPT and Codex use their published Client ID Metadata
 Document (CIMD) identifiers, stable callbacks, and the public-client
 authentication method with PKCE. For other public-client
 documents, set the optional Worker variable `OAUTH_CLIENT_METADATA_URLS` to

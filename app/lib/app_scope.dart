@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'api/api_client.dart';
 import 'auth/auth_controller.dart';
@@ -11,6 +11,8 @@ class AppScope extends InheritedWidget {
     required this.api,
     required this.auth,
     required this.explore,
+    required this.themeMode,
+    required this.onThemeChanged,
     required super.child,
   });
 
@@ -19,6 +21,8 @@ class AppScope extends InheritedWidget {
 
   /// Explore search/filter state, kept here so it survives navigation.
   final ExploreController explore;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeChanged;
 
   static AppScope of(BuildContext context) {
     final scope = context.getInheritedWidgetOfExactType<AppScope>();
@@ -26,6 +30,10 @@ class AppScope extends InheritedWidget {
     return scope!;
   }
 
+  static AppScope watchAppearance(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppScope>()!;
+
   @override
-  bool updateShouldNotify(AppScope oldWidget) => false;
+  bool updateShouldNotify(AppScope oldWidget) =>
+      oldWidget.themeMode != themeMode;
 }

@@ -122,8 +122,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           Text(
                             '@${p.user.username} · Joined ${formatDate(p.joinedAt)}',
-                            style: const TextStyle(
-                              color: AppColors.muted,
+                            style: TextStyle(
+                              color: context.colors.muted,
                               fontSize: 13,
                             ),
                           ),
@@ -137,9 +137,14 @@ class _ProfilePageState extends State<ProfilePage> {
                             onPressed: () async {
                               final link =
                                   '${AppConfig.apiBaseUrl}/${p.user.username}';
-                              await Clipboard.setData(ClipboardData(text: link));
+                              await Clipboard.setData(
+                                ClipboardData(text: link),
+                              );
                               if (context.mounted) {
-                                showMessage(context, 'Profile link copied: $link');
+                                showMessage(
+                                  context,
+                                  'Profile link copied: $link',
+                                );
                               }
                             },
                             icon: const Icon(Icons.link, size: 16),
@@ -174,8 +179,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
             Container(
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.line)),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: context.colors.line)),
               ),
               child: Row(
                 children: [
@@ -254,7 +259,7 @@ class _Stat extends StatelessWidget {
         ),
         TextSpan(
           text: label,
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.colors.muted),
         ),
       ],
     ),
@@ -275,7 +280,7 @@ class _Tab extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: active ? AppColors.accent : Colors.transparent,
+            color: active ? context.colors.accent : Colors.transparent,
             width: 2,
           ),
         ),
@@ -284,7 +289,7 @@ class _Tab extends StatelessWidget {
         label,
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          color: active ? AppColors.accent : AppColors.muted,
+          color: active ? context.colors.accent : context.colors.muted,
         ),
       ),
     ),

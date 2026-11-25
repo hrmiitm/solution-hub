@@ -25,6 +25,17 @@ Future<void> showMcpDialog(BuildContext context) {
   );
 }
 
+enum _Agent {
+  claude('Claude'),
+  chatgpt('ChatGPT'),
+  claudeCode('Claude Code'),
+  codex('Codex'),
+  other('Other');
+
+  const _Agent(this.label);
+  final String label;
+}
+
 class _McpDialog extends StatefulWidget {
   const _McpDialog({required this.scope, required this.signIn});
   final AppScope scope;
@@ -35,10 +46,15 @@ class _McpDialog extends StatefulWidget {
 }
 
 class _McpDialogState extends State<_McpDialog> {
+  _Agent _agent = _Agent.claude;
+  bool _manage = false;
+  bool _copied = false;
   List<McpConnection>? _connections;
   String? _error;
+  String? _copyError;
   bool _busy = false;
-  bool _copied = false;
+
+  String get _url => '${widget.scope.api.baseUrl}/mcp';
 
   @override
   void initState() {
@@ -78,127 +94,266 @@ class _McpDialogState extends State<_McpDialog> {
     }
   }
 
+  Future<void> _copy() async {
+    try {
+      await Clipboard.setData(ClipboardData(text: _url));
+      if (mounted) {
+        setState(() {
+          _copied = true;
+          _copyError = null;
+        });
+      }
+    } on PlatformException {
+      if (mounted) setState(() => _copyError = 'Select the URL to copy it.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final server = '${widget.scope.api.baseUrl}/mcp';
-    return AlertDialog(
-      title: const Text('Connect an agent (MCP)'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+    final text = Theme.of(context).textTheme;
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 568),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 12, 12),
+              child: Row(
                 children: [
-                  Expanded(child: SelectableText(server)),
+                  Expanded(
+                    child: Text('Connect to agent', style: text.headlineSmall),
+                  ),
                   IconButton(
-                    tooltip: _copied ? 'Copied' : 'Copy server URL',
-                    icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: server));
-                      if (mounted) setState(() => _copied = true);
-                    },
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Add this URL as a remote MCP server in ChatGPT, Claude, Codex, or another Streamable HTTP client. Choose OAuth if prompted, then sign in to SolutionHub and review the requested access.',
-              ),
-              const SizedBox(height: 12),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('CLI setup'),
-                children: [
-                  SelectableText(
-                    'Claude Code\nclaude mcp add --transport http solutionhub $server\nOpen /mcp in Claude Code to authenticate.',
-                  ),
-                  const SizedBox(height: 10),
-                  SelectableText(
-                    'Codex\ncodex mcp add solutionhub --url $server\ncodex mcp login solutionhub',
-                  ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: SegmentedButton<bool>(
+                expandedInsets: EdgeInsets.zero,
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Setup')),
+                  ButtonSegment(value: true, label: Text('Connected apps')),
                 ],
+                selected: {_manage},
+                onSelectionChanged: (choice) =>
+                    setState(() => _manage = choice.single),
               ),
-              const Divider(),
-              Text(
-                'Connected apps',
-                style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const Divider(),
+            Flexible(
+              child: SingleChildScrollView(
+                key: ValueKey(_manage),
+                padding: const EdgeInsets.all(24),
+                child: _manage ? _manageApps() : _setup(),
               ),
-              const SizedBox(height: 8),
-              ListenableBuilder(
-                listenable: widget.scope.auth,
-                builder: (context, _) {
-                  if (widget.scope.auth.status != AuthStatus.signedIn) {
-                    return TextButton(
-                      onPressed: widget.signIn,
-                      child: const Text('Sign in to manage access'),
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_error case final message?) ...[
-                        Text(
-                          message,
-                          style: const TextStyle(color: AppColors.danger),
-                        ),
-                        TextButton(
-                          onPressed: _load,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                      if (_connections == null && _error == null)
-                        const LinearProgressIndicator(),
-                      if (_connections case final connections?)
-                        if (connections.isEmpty)
-                          const Text('No apps are connected.')
-                        else
-                          for (final connection in connections)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(connection.name),
-                              subtitle: Text(
-                                [
-                                  connection.canWrite
-                                      ? 'Read and write'
-                                      : 'Read only',
-                                  ?connection.clientId,
-                                ].join('\n'),
-                              ),
-                              trailing: PopupMenuButton<bool>(
-                                enabled: !_busy,
-                                tooltip: 'Manage ${connection.name}',
-                                onSelected: (disconnect) =>
-                                    _change(connection, disconnect),
-                                itemBuilder: (context) => [
-                                  if (connection.canWrite)
-                                    const PopupMenuItem(
-                                      value: false,
-                                      child: Text('Remove write access'),
-                                    ),
-                                  const PopupMenuItem(
-                                    value: true,
-                                    child: Text('Disconnect'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                    ],
-                  );
-                },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _setup() {
+    final text = Theme.of(context).textTheme;
+    final address = SelectableText(
+      _url,
+      style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+    );
+    final copy = FilledButton.icon(
+      onPressed: _copy,
+      icon: Icon(_copied ? Icons.check : Icons.copy_outlined, size: 16),
+      label: Text(_copied ? 'Copied' : 'Copy URL'),
+    );
+    final steps = switch (_agent) {
+      _Agent.claude => [
+        'In Claude, open Customize → Connectors and add a custom connector.',
+        'Name it SolutionHub and paste the connector URL above.',
+        'Choose Sign in now and use Claude’s published identity. Sign in to SolutionHub and approve access.',
+      ],
+      _Agent.chatgpt => [
+        'In ChatGPT, open Settings → Apps and add a custom app.',
+        'Paste the connector URL and choose OAuth.',
+        'Sign in to SolutionHub and approve access.',
+      ],
+      _Agent.claudeCode => [
+        'Run the command below, then open /mcp to sign in.',
+      ],
+      _Agent.codex => [
+        'Run these commands, then approve access in your browser.',
+      ],
+      _Agent.other => [
+        'Add a remote server using Streamable HTTP and paste the connector URL.',
+        'Choose OAuth and approve access in SolutionHub.',
+      ],
+    };
+    final commands = switch (_agent) {
+      _Agent.claudeCode => 'claude mcp add --transport http solutionhub $_url',
+      _Agent.codex =>
+        'codex mcp add solutionhub --url $_url\ncodex mcp login solutionhub',
+      _ => null,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Connector URL', style: text.titleSmall),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: context.colors.tagBg,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) => constraints.maxWidth >= 440
+                    ? Row(
+                        children: [
+                          Expanded(child: address),
+                          const SizedBox(width: 12),
+                          copy,
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          address,
+                          const SizedBox(height: 8),
+                          Align(alignment: Alignment.centerRight, child: copy),
+                        ],
+                      ),
               ),
+              if (_copyError case final error?) Text(error),
             ],
           ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+        const SizedBox(height: 24),
+        Text('Choose your agent', style: text.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final agent in _Agent.values)
+              ChoiceChip(
+                label: Text(agent.label),
+                selected: _agent == agent,
+                showCheckmark: false,
+                onSelected: (_) => setState(() => _agent = agent),
+              ),
+          ],
         ),
+        const SizedBox(height: 16),
+        for (final (index, step) in steps.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${index + 1}.',
+                    style: TextStyle(color: context.colors.muted),
+                  ),
+                ),
+                Expanded(child: Text(step)),
+              ],
+            ),
+          ),
+        if (commands != null)
+          SelectableText(
+            commands,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+          ),
       ],
     );
   }
+
+  Widget _manageApps() => ListenableBuilder(
+    listenable: widget.scope.auth,
+    builder: (context, _) {
+      if (widget.scope.auth.status != AuthStatus.signedIn) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Sign in to see and manage the agents connected to your account.',
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: widget.signIn,
+              child: const Text('Sign in'),
+            ),
+          ],
+        );
+      }
+      final connections = _connections;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_error case final error?) ...[
+            Text(error, style: TextStyle(color: context.colors.danger)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _busy ? null : _load,
+                child: const Text('Retry'),
+              ),
+            ),
+          ],
+          if (connections == null && _error == null)
+            const LinearProgressIndicator(),
+          if (connections != null && connections.isEmpty) ...[
+            Text(
+              'No connected apps',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            const Text('Connections appear here after you approve access.'),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _manage = false),
+                child: const Text('Go to setup'),
+              ),
+            ),
+          ],
+          for (final connection in connections ?? const <McpConnection>[])
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.link_outlined),
+              title: Text(connection.name),
+              subtitle: Text(
+                connection.canWrite ? 'Read and write' : 'Read only',
+              ),
+              trailing: PopupMenuButton<bool>(
+                enabled: !_busy,
+                tooltip: 'Manage ${connection.name}',
+                onSelected: (disconnect) => _change(connection, disconnect),
+                itemBuilder: (context) => [
+                  if (connection.canWrite)
+                    const PopupMenuItem(
+                      value: false,
+                      child: Text('Remove write access'),
+                    ),
+                  const PopupMenuItem(value: true, child: Text('Disconnect')),
+                ],
+              ),
+            ),
+        ],
+      );
+    },
+  );
 }

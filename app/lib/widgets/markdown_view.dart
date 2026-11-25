@@ -31,7 +31,7 @@ class MarkdownView extends StatelessWidget {
     final body = theme.textTheme.bodyMedium!.copyWith(
       fontSize: 14,
       height: 1.65,
-      color: AppColors.ink,
+      color: context.colors.ink,
     );
     return MarkdownBody(
       data: data,
@@ -43,10 +43,7 @@ class MarkdownView extends StatelessWidget {
       imageBuilder: (uri, title, alt) {
         final url = _resolve(uri.toString());
         if (url == null) {
-          return Text(
-            alt ?? '',
-            style: const TextStyle(color: AppColors.muted),
-          );
+          return Text(alt ?? '', style: TextStyle(color: context.colors.muted));
         }
         return ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 340),
@@ -54,7 +51,7 @@ class MarkdownView extends StatelessWidget {
             url,
             fit: BoxFit.contain,
             onError: () =>
-                Text(alt ?? '', style: const TextStyle(color: AppColors.muted)),
+                Text(alt ?? '', style: TextStyle(color: context.colors.muted)),
           ),
         );
       },
@@ -63,7 +60,7 @@ class MarkdownView extends StatelessWidget {
         listBullet: body,
         tableBody: body.copyWith(fontSize: 13),
         tableHead: body.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
-        tableBorder: TableBorder.all(color: AppColors.line),
+        tableBorder: TableBorder.all(color: context.colors.line),
         tableCellsPadding: const EdgeInsets.all(7),
         h1: const TextStyle(
           fontSize: 22,
@@ -80,23 +77,25 @@ class MarkdownView extends StatelessWidget {
           fontWeight: FontWeight.w700,
           height: 1.4,
         ),
-        a: const TextStyle(
-          color: AppColors.accent,
+        a: TextStyle(
+          color: context.colors.accent,
           decoration: TextDecoration.underline,
         ),
         code: TextStyle(
           fontFamily: 'monospace',
           fontSize: 13,
-          backgroundColor: const Color(0xFFEEF2F8),
-          color: AppColors.ink,
+          backgroundColor: context.colors.tagBg,
+          color: context.colors.ink,
         ),
         codeblockDecoration: BoxDecoration(
-          color: const Color(0xFFF1F4F8),
+          color: context.colors.tagBg,
           borderRadius: BorderRadius.circular(8),
         ),
         codeblockPadding: const EdgeInsets.all(12),
-        blockquoteDecoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: AppColors.line, width: 3)),
+        blockquoteDecoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: context.colors.line, width: 3),
+          ),
         ),
         blockquotePadding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
         blockSpacing: 10,

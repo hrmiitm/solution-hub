@@ -148,7 +148,9 @@ class _SolutionPageState extends State<SolutionPage> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+              style: FilledButton.styleFrom(
+                backgroundColor: context.colors.danger,
+              ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Delete'),
             ),
@@ -205,9 +207,9 @@ class _SolutionPageState extends State<SolutionPage> {
       Panel(
         title: 'Description',
         child: (s.descriptionMd ?? '').trim().isEmpty
-            ? const Text(
+            ? Text(
                 'No description.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.colors.muted),
               )
             : MarkdownView(s.descriptionMd!),
       ),
@@ -300,8 +302,8 @@ class _SolutionPageState extends State<SolutionPage> {
                     ),
                     Text(
                       ' / ${s.slug}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
+                      style: TextStyle(
+                        color: context.colors.muted,
                         fontSize: 13,
                       ),
                     ),
@@ -326,13 +328,13 @@ class _SolutionPageState extends State<SolutionPage> {
             const SizedBox(height: 6),
             Text(
               s.summary,
-              style: const TextStyle(color: Color(0xFF516078), fontSize: 14.5),
+              style: TextStyle(color: context.colors.tagInk, fontSize: 14.5),
             ),
           ],
           const SizedBox(height: 8),
           Text(
             dates,
-            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            style: TextStyle(color: context.colors.muted, fontSize: 12),
           ),
           if (s.isOwner) ...[
             const SizedBox(height: 12),
@@ -371,7 +373,7 @@ class _SolutionPageState extends State<SolutionPage> {
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _delete,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
+                    foregroundColor: context.colors.danger,
                   ),
                   icon: const Icon(Icons.delete_outline, size: 16),
                   label: const Text('Delete'),
@@ -445,10 +447,7 @@ class _VisibilityMenu extends StatelessWidget {
                         : (v == SolutionVisibility.organization
                               ? 'Members of $orgDomain'
                               : v.description),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.muted,
-                    ),
+                    style: TextStyle(fontSize: 11, color: context.colors.muted),
                   ),
                 ],
               ),
@@ -487,7 +486,7 @@ class _ResourcesPanelState extends State<_ResourcesPanel> {
             Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.colors.line),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Column(
@@ -503,7 +502,7 @@ class _ResourcesPanelState extends State<_ResourcesPanel> {
                         Icon(
                           resourceIcon(r.type),
                           size: 20,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -518,9 +517,9 @@ class _ResourcesPanelState extends State<_ResourcesPanel> {
                               ),
                               Text(
                                 '${resourceTypes[r.type] ?? 'Link'} · ${Uri.tryParse(r.url)?.host ?? ''}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.muted,
+                                  color: context.colors.muted,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -580,7 +579,7 @@ class _DetailsPanel extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            style: TextStyle(fontSize: 12, color: context.colors.muted),
           ),
           const SizedBox(height: 4),
           child,
@@ -609,7 +608,7 @@ class _DetailsPanel extends StatelessWidget {
                 Icon(
                   visibilityIcon(s.visibility),
                   size: 15,
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -705,9 +704,9 @@ class _HistoryPanelState extends State<_HistoryPanel> {
             const SizedBox(height: 14),
           ],
           if (widget.updates.isEmpty)
-            const Text(
+            Text(
               'No history yet.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.colors.muted),
             ),
           for (final (i, u) in widget.updates.indexed)
             IntrinsicHeight(
@@ -719,22 +718,22 @@ class _HistoryPanelState extends State<_HistoryPanel> {
                       Container(
                         width: 28,
                         height: 28,
-                        decoration: const BoxDecoration(
-                          color: AppColors.soft,
+                        decoration: BoxDecoration(
+                          color: context.colors.soft,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           _icon(u.eventType),
                           size: 15,
-                          color: AppColors.accent,
+                          color: context.colors.accent,
                         ),
                       ),
                       if (i < widget.updates.length - 1)
-                        const Expanded(
+                        Expanded(
                           child: VerticalDivider(
                             width: 2,
                             thickness: 2,
-                            color: AppColors.line,
+                            color: context.colors.line,
                           ),
                         ),
                     ],
@@ -757,8 +756,8 @@ class _HistoryPanelState extends State<_HistoryPanel> {
                                 ),
                                 TextSpan(
                                   text: '  ${formatDateTime(u.createdAt)}',
-                                  style: const TextStyle(
-                                    color: AppColors.muted,
+                                  style: TextStyle(
+                                    color: context.colors.muted,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -769,21 +768,19 @@ class _HistoryPanelState extends State<_HistoryPanel> {
                           if (u.eventType == 'progress_updated')
                             SelectableText(
                               u.message,
-                              style: const TextStyle(color: Color(0xFF3B4A63)),
+                              style: TextStyle(color: context.colors.ink),
                             )
                           else
                             Text(
                               u.message,
-                              style: const TextStyle(color: Color(0xFF3B4A63)),
+                              style: TextStyle(color: context.colors.ink),
                             ),
                           if (u.changeNote case final note?)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: SelectableText(
                                 note,
-                                style: const TextStyle(
-                                  color: Color(0xFF3B4A63),
-                                ),
+                                style: TextStyle(color: context.colors.ink),
                               ),
                             ),
                           if (_resourceDiff(u) case final diff?)
@@ -791,9 +788,9 @@ class _HistoryPanelState extends State<_HistoryPanel> {
                               padding: const EdgeInsets.only(top: 3),
                               child: Text(
                                 diff,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.muted,
+                                  color: context.colors.muted,
                                 ),
                               ),
                             ),

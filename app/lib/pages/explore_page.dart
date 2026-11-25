@@ -64,9 +64,9 @@ class _ExplorePageState extends State<ExplorePage> {
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Projects, demos and business solutions shared across the team.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.colors.muted),
               ),
               const SizedBox(height: 16),
               _toolbar(compact),
@@ -134,8 +134,8 @@ class _ExplorePageState extends State<ExplorePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: AppColors.line),
+          color: context.colors.paper,
+          border: Border.all(color: context.colors.line),
           borderRadius: BorderRadius.circular(8),
         ),
         child: DropdownButton<String?>(
@@ -193,7 +193,7 @@ class _ExplorePageState extends State<ExplorePage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.paper,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.7,
@@ -224,7 +224,7 @@ class _ExplorePageState extends State<ExplorePage> {
               c.loading && c.items.isEmpty
                   ? 'Loading…'
                   : '${c.total} ${c.total == 1 ? 'solution' : 'solutions'}',
-              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              style: TextStyle(fontSize: 12, color: context.colors.muted),
             ),
             if (c.loading && c.items.isNotEmpty) ...[
               const SizedBox(width: 8),
@@ -408,8 +408,8 @@ class _FilterSectionState extends State<_FilterSection> {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.line)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.line)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -422,9 +422,9 @@ class _FilterSectionState extends State<_FilterSection> {
             ),
           ),
           if (facets.isEmpty)
-            const Text(
+            Text(
               'No values yet',
-              style: TextStyle(fontSize: 12, color: AppColors.muted),
+              style: TextStyle(fontSize: 12, color: context.colors.muted),
             ),
           for (final f in visible)
             InkWell(
@@ -456,9 +456,9 @@ class _FilterSectionState extends State<_FilterSection> {
                     ),
                     Text(
                       '${f.count}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: AppColors.muted,
+                        color: context.colors.muted,
                       ),
                     ),
                   ],
