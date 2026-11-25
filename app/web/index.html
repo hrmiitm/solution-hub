@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SolutionHub: create, track and discover projects, demos and business solutions.">
+  <meta name="theme-color" content="#2859CE">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SolutionHub">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>SolutionHub</title>
+  <!-- No inline scripts: the Content-Security-Policy only allows same-origin scripts. -->
+  <style>
+    html, body { margin: 0; background: #f7f8fa; }
+    body:has(flutter-view) #boot { display: none; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; font: 14px system-ui, sans-serif; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div id="boot">Loading SolutionHub…</div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

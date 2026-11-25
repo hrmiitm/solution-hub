@@ -1,0 +1,33 @@
+# Secrets and local configuration — never commit
+.env
+.env.*
+!.env.example
+.dev.vars
+**/.dev.vars
+app/android/key.properties
+*.jks
+*.keystore
+
+# Reference prototype (not part of the product)
+.demo-temp-solutionhub.html
+
+# Build output
+build/
+worker/dist/
+.wrangler/
+worker/.wrangler/
+worker/node_modules/
+node_modules/
+
+# Flutter/Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/android/local.properties
+app/android/app/.cxx/
+app/android/**/GeneratedPluginRegistrant.java
+*.iml
+.idea/
+.vscode/
+.DS_Store
