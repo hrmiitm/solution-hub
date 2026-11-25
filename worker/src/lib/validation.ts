@@ -367,6 +367,44 @@ export function validateSearchArgs(raw: unknown, me: string): SearchInput {
   return out;
 }
 
+// REST query strings are lenient: unknown values are dropped and junk falls
+// back to defaults (services clamp page and limit), so shared links never fail.
+
+function queryList(q: URLSearchParams, key: string): string[] | undefined {
+  const values = q
+    .getAll(key)
+    .flatMap((v) => v.split(','))
+    .map((v) => v.trim().slice(0, LIMITS.tagLength))
+    .filter(Boolean)
+    .slice(0, LIMITS.tagItems);
+  return values.length ? values : undefined;
+}
+
+/** `visibility` query parameter: known levels only. */
+export function visibilityQuery(q: URLSearchParams): Visibility[] | undefined {
+  const values = (queryList(q, 'visibility') ?? []).filter((v): v is Visibility => (VISIBILITIES as readonly string[]).includes(v));
+  return values.length ? values : undefined;
+}
+
+/** Search filters from a REST query string (the MCP equivalent is validateSearchArgs). */
+export function searchQuery(q: URLSearchParams): SearchInput {
+  const status = q.get('status');
+  const sort = q.get('sort');
+  return {
+    q: (q.get('q') ?? '').slice(0, 200),
+    status: STATUSES.find((value) => value === status),
+    visibility: visibilityQuery(q),
+    types: queryList(q, 'type'),
+    industry: queryList(q, 'industry'),
+    function: queryList(q, 'function'),
+    category: queryList(q, 'category'),
+    technology: queryList(q, 'technology'),
+    sort: SORTS.find((value) => value === sort),
+    page: Number.parseInt(q.get('page') ?? '1', 10) || 1,
+    limit: Number.parseInt(q.get('limit') ?? '24', 10) || 24,
+  };
+}
+
 export function validateStatus(raw: unknown): Status {
   if (typeof raw !== 'string' || !(STATUSES as readonly string[]).includes(raw)) {
     throw new AppError('validation_failed', 'Some fields are invalid', { status: `Must be one of: ${STATUSES.join(', ')}` });

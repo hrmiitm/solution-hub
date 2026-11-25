@@ -33,7 +33,7 @@ import {
 import type { Actor, Env } from './env.ts';
 import { readBoundedText } from './http.ts';
 import { AppError } from './lib/errors.ts';
-import { enforceRateLimit } from './lib/ratelimit.ts';
+import { clientIp, enforceClientLimit } from './lib/ratelimit.ts';
 import { splitList } from './lib/util.ts';
 import { ClientMetadataError, isLoopbackHost, redirectHost, validateClientMetadata, type ClientAuthMethod } from './lib/validation.ts';
 
@@ -64,7 +64,7 @@ const PUBLIC_CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'authorization, content-type, mcp-protocol-version',
-  'access-control-expose-headers': 'www-authenticate',
+  'access-control-expose-headers': 'www-authenticate, retry-after',
   'access-control-max-age': '600',
 };
 
@@ -125,11 +125,20 @@ export function canonicalResource(url: URL, raw: string | null): string | null {
 export const isOAuthPath = (pathname: string) =>
   pathname.startsWith('/.well-known/oauth-') || pathname === '/oauth/register' || pathname === '/oauth/token' || pathname === '/oauth/revoke';
 
-const clientIp = (request: Request) => request.headers.get('cf-connecting-ip') ?? 'local';
+const ENDPOINTS = ['/oauth/register', '/oauth/token', '/oauth/revoke'];
 
 export async function handleOAuth(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
+  try {
+    // Registration, token and revocation share the per-IP auth limit; discovery documents are anonymous reads.
+    enforceClientLimit(env, request.method !== 'OPTIONS' && ENDPOINTS.includes(path) ? 'auth' : 'anonymous', clientIp(request));
+  } catch (err) {
+    if (err instanceof AppError && err.retryAfter) {
+      return oauthJson({ error: 'rate_limited', error_description: err.message }, 429, { 'retry-after': String(err.retryAfter) });
+    }
+    throw err;
+  }
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: PUBLIC_CORS });
 
   if (path === '/.well-known/oauth-protected-resource' || path === `/.well-known/oauth-protected-resource${MCP_PATH}`) {
@@ -140,7 +149,7 @@ export async function handleOAuth(request: Request, env: Env): Promise<Response>
     if (request.method !== 'GET' && request.method !== 'HEAD') return oauthJson({ error: 'method_not_allowed' }, 405);
     return oauthJson(authorizationServerMetadata(url), 200, { 'cache-control': 'public, max-age=3600' });
   }
-  if (!['/oauth/register', '/oauth/token', '/oauth/revoke'].includes(path)) return oauthJson({ error: 'not_found' }, 404);
+  if (!ENDPOINTS.includes(path)) return oauthJson({ error: 'not_found' }, 404);
   if (request.method !== 'POST') return oauthJson({ error: 'invalid_request', error_description: 'Use POST' }, 405, { allow: 'POST' });
 
   try {
@@ -149,7 +158,6 @@ export async function handleOAuth(request: Request, env: Env): Promise<Response>
     return await revoke(request, env, url);
   } catch (err) {
     if (err instanceof OAuthError) return oauthError(err);
-    if (err instanceof AppError && err.code === 'rate_limited') return oauthJson({ error: 'slow_down', error_description: err.message }, 429);
     if (err instanceof AppError && err.status < 500) return oauthJson({ error: 'invalid_request', error_description: err.message }, 400);
     console.error('SolutionHub OAuth request failed', path);
     return oauthJson({ error: 'server_error', error_description: 'Something went wrong' }, 500);
@@ -212,7 +220,6 @@ async function authenticateClient(request: Request, db: D1Database, params: Map<
 }
 
 async function register(request: Request, env: Env): Promise<Response> {
-  await enforceRateLimit(env, `oauth-register:${clientIp(request)}`, 30, 3600);
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? '')) {
     throw new OAuthError('invalid_client_metadata', 'Content-Type must be application/json');
   }
@@ -249,7 +256,6 @@ async function register(request: Request, env: Env): Promise<Response> {
 }
 
 async function token(request: Request, env: Env, url: URL): Promise<Response> {
-  await enforceRateLimit(env, `oauth-token:${clientIp(request)}`, 300, 600);
   const params = await readParams(request);
   const client = await authenticateClient(request, env.DB, params);
   const resource = canonicalResource(url, params.get('resource') ?? null);
@@ -276,7 +282,6 @@ async function token(request: Request, env: Env, url: URL): Promise<Response> {
 }
 
 async function revoke(request: Request, env: Env, url: URL): Promise<Response> {
-  await enforceRateLimit(env, `oauth-token:${clientIp(request)}`, 300, 600);
   const params = await readParams(request);
   const token = params.get('token');
   if (!token) throw new OAuthError('invalid_request', 'token is required');

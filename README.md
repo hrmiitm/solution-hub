@@ -129,11 +129,17 @@ document can use dynamic registration.
 ## Repository layout
 
 ```
-app/        Flutter app (web + Android)
-worker/     Cloudflare Worker, D1 migrations, wrangler.jsonc
-tests/      Backend unit + integration tests
-scripts/    build.sh, dev-env.sh, seed.mjs (dev only)
+app/             Flutter app (web + Android)
+worker/src/      Cloudflare Worker: REST (api.ts), MCP (mcp/), OAuth (oauth.ts), services/, auth/, lib/
+worker/migrations/  D1 schema migrations (applied in order)
+worker/static/   Pages _routes.json and _headers, copied into worker/dist by build.sh
+tests/           Backend unit + integration tests
+scripts/         build.sh, dev-env.sh, seed.mjs (dev only), import.mjs, check-secrets.sh
 ```
+
+Web, Android and MCP clients call the same Worker services, so validation,
+visibility and ownership rules are implemented once. See AGENTS.md for the
+architecture, data model and a checklist for changing features.
 
 ## Prerequisites
 
@@ -221,13 +227,17 @@ GitHub". Card visibility never changes a GitHub repository's visibility.
 ## Tests
 
 ```bash
-cd worker && npm run typecheck && npm test   # unit: token verification, validation, URLs, search terms
+cd worker && npm run typecheck && npm test   # unit: token verification, validation, access, rate limits, search terms
 cd worker && npm run test:integration        # REST and MCP integration tests; needs `npm run dev` running
 cd app && flutter analyze && flutter test    # Dart analysis + unit tests
 ```
 
 The integration suite creates throwaway users and sessions directly in the
-test database and deletes them afterwards. The MCP cases run locally. To run
+test database and deletes them afterwards. It covers cross-account and
+organization isolation, CSRF, token rotation and revocation, and checks that
+REST and MCP return the same results for every kind of account. The MCP cases
+run locally. If port 8788 is busy, start `npx wrangler pages dev --port 8790`
+and set `BASE_URL=http://127.0.0.1:8790`. To run
 the REST and dataset checks against production after deploying:
 
 ```bash
@@ -246,8 +256,9 @@ web and Android variants with `node scripts/generate-icons.mjs` using librsvg
 and ImageMagick.
 
 ```bash
-scripts/build.sh all     # worker/dist (web + _worker.js) and build/solutionhub.apk
+scripts/build.sh all     # worker/dist (web + _worker.js + _routes.json/_headers) and build/solutionhub.apk
 cd worker
+npx wrangler d1 export solutionhub --remote --output ../backups/$(date +%F).sql   # backup (git-ignored) before migrations
 npx wrangler d1 migrations apply solutionhub --remote
 npx wrangler pages deploy --project-name solutionhub-hrm --branch main
 ```
@@ -271,22 +282,56 @@ Without `key.properties`, release builds fall back to the debug key.
 
 ## Rate limits
 
-Application rate limits are disabled. To restore them, set
-`RATE_LIMITS_ENABLED` to `"true"` under `vars` in
-`worker/wrangler.jsonc` and redeploy. The enabled limits are listed below.
+Limits are enabled in production and configured under `vars` in
+`worker/wrangler.jsonc`; change a value and redeploy. All of them are
+implemented in `worker/src/lib/ratelimit.ts` and applied once per request,
+in the same way for REST, MCP and OAuth.
 
-| Scope | Limit | Where |
-|---|---|---|
-| Any `/api/*` request, per client IP | 1,800 per minute, per Worker isolate (best effort) | in memory |
-| Google sign-in, per client IP | 60 per 10 minutes (every attempt counts) | D1 |
-| Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 360 per 10 minutes, per user | D1 |
-| MCP requests, per client IP | 1,800 per minute, per Worker isolate | In memory |
-| MCP client registration, per client IP | 30 per hour | D1 |
-| MCP authorization request, per client IP | 120 per 10 minutes | D1 |
-| MCP consent, per signed-in user | 60 per 10 minutes | D1 |
-| MCP token and revocation requests, per client IP | 300 per 10 minutes combined | D1 |
+| Scope | Default limit | Key | Counter | Variable |
+|---|---|---|---|---|
+| Signed-in user (web, Android and MCP combined) | 2,000 per 5 minutes | user | in memory, per Worker isolate | `RATE_LIMIT_USER` |
+| No valid session or token (API, MCP, app shell, OAuth discovery) | 300 per 5 minutes | client IP | in memory, per Worker isolate | `RATE_LIMIT_ANONYMOUS` |
+| Sign-in, MCP consent, OAuth register, token and revoke | 50 per 5 minutes | client IP | in memory, per Worker isolate | `RATE_LIMIT_AUTH` |
+| Whole application | 80,000 per UTC day | none | global, approximate (D1) | `RATE_LIMIT_GLOBAL_PER_DAY` |
 
-Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volumetric abuse.
+- **Switches:** `RATE_LIMITS_ENABLED: "false"` turns off the three per-client
+  limits. The daily budget is a separate cost cap: set
+  `RATE_LIMIT_GLOBAL_PER_DAY` to `"0"` to turn it off. Any limit set to `"0"` is
+  off. `RATE_LIMIT_WINDOW_SECONDS` (default 300) sets the per-client window.
+- **Renewal:** windows are fixed and aligned to the clock, so allowances renew
+  automatically every 5 minutes. The daily budget renews at 00:00 UTC.
+- **When exceeded:** HTTP 429 with a `Retry-After` header (seconds) and
+  `error.code = "rate_limited"`, `error.details.retryAfter` in the JSON body
+  (`error: "rate_limited"` on OAuth endpoints). The app shows the message.
+- **Regional or global:** per-client counters live in the memory of one Worker
+  isolate in one Cloudflare location. They cost no D1 reads or writes, but
+  requests that reach other locations or isolates are counted separately, so
+  they are best effort and not global. The daily budget is global: each isolate
+  counts locally and adds its count to one D1 row at most every 50 requests or
+  30 seconds, off the request path. It can lag by about that amount.
+- **What counts:** every request that runs the Worker counts toward the daily
+  budget. The static Flutter files (`/main.dart.js`, `/assets/*`,
+  `/canvaskit/*`, `/icons/*` and others in `worker/static/_routes.json`) are
+  served by Pages without running the Worker, so they use neither the budget
+  nor Cloudflare's Worker request quota.
+- **Local development and tests** run with limits off (`scripts/dev-env.sh`
+  writes them to `worker/.dev.vars`). Unit tests cover the limiter with a fake
+  clock and database. Do not load-test production: a spent daily budget blocks
+  everyone until 00:00 UTC.
+
+Why not Cloudflare's Rate Limiting binding: Cloudflare Pages projects cannot
+declare it (wrangler rejects `ratelimits` in a Pages config), and its counters
+are per location too. Using it, or a Durable Object for exact global counters,
+would require a second Worker.
+
+Edge protection: Cloudflare's always-on DDoS mitigation covers
+`*.pages.dev`. WAF rate-limiting rules, Bot Fight Mode and custom firewall
+rules need a custom domain on a Cloudflare zone. With a custom domain, add a
+rate-limiting rule for `/api/auth/*`, `/oauth/*` and `/mcp` as the first line
+of defence (the free plan allows one rule with a 10-second period).
+
+Shared egress IPs (for example, a connector platform refreshing tokens for many
+users) share the per-IP limits. Raise `RATE_LIMIT_AUTH` if that happens.
 
 ## Known limitations
 

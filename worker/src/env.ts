@@ -8,8 +8,18 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Extra reviewed HTTPS Client ID Metadata Document URLs for MCP OAuth. */
   OAUTH_CLIENT_METADATA_URLS?: string;
-  /** Set to "true" to enable application rate limits. */
+  /** "false" turns off the per-client rate limits (user, anonymous, auth). See lib/ratelimit.ts. */
   RATE_LIMITS_ENABLED?: string;
+  /** Per-client window length in seconds (default 300). */
+  RATE_LIMIT_WINDOW_SECONDS?: string;
+  /** Requests per window per signed-in user, shared by REST and MCP (default 2000; 0 = no limit). */
+  RATE_LIMIT_USER?: string;
+  /** Requests per window per IP without a valid session or token (default 300; 0 = no limit). */
+  RATE_LIMIT_ANONYMOUS?: string;
+  /** Requests per window per IP to sign-in, consent and OAuth endpoints (default 50; 0 = no limit). */
+  RATE_LIMIT_AUTH?: string;
+  /** Requests per UTC day across the whole app (default 80000; 0 = no budget). */
+  RATE_LIMIT_GLOBAL_PER_DAY?: string;
 }
 
 /**

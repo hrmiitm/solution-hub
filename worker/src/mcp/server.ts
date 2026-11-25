@@ -1,9 +1,9 @@
 import { ProtocolError, ProtocolErrorCode, ResourceNotFoundError, Server, createMcpHandler, type CallToolResult, type Tool } from '@modelcontextprotocol/server';
 import { resolveAccessToken, SCOPE_READ, SCOPE_WRITE, type McpPrincipal } from '../auth/oauth.ts';
 import type { Env } from '../env.ts';
-import { MAX_BODY_BYTES, allowedOrigins, json, readJson } from '../http.ts';
+import { MAX_BODY_BYTES, allowedOrigins, errorResponse, json, readJson } from '../http.ts';
 import { AppError } from '../lib/errors.ts';
-import { enforceMemoryRateLimit, enforceRateLimit } from '../lib/ratelimit.ts';
+import { clientIp, enforceClientLimit } from '../lib/ratelimit.ts';
 import {
   intArg, parseSolutionRef, toolArgs, usernameArg, validateSearchArgs, validateSolutionInput, validateStatus, validateUpdateMessage,
 } from '../lib/validation.ts';
@@ -56,9 +56,8 @@ async function runTool(env: Env, principal: McpPrincipal, origin: string, name: 
   const { actor } = principal;
   const args = toolArgs(raw, Object.keys(INPUT_SCHEMAS[name].properties));
   const find = () => solutions.resolveSolution(db, actor, parseSolutionRef(args.solution, 'solution', origin));
-  if (writeTools.has(name)) {
-    if (!principal.scopes.includes(SCOPE_WRITE)) throw new AppError('forbidden', 'Connector write consent is required');
-    await enforceRateLimit(env, `write:${actor.userId}`, 360, 600);
+  if (writeTools.has(name) && !principal.scopes.includes(SCOPE_WRITE)) {
+    throw new AppError('forbidden', 'Connector write consent is required');
   }
 
   switch (name) {
@@ -179,9 +178,16 @@ export async function handleMcp(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const origin = request.headers.get('origin');
   if (origin !== null && !allowedOrigins(request, env).has(origin)) return json({ error: 'invalid_origin' }, 403);
-  const response = request.method === 'OPTIONS'
-    ? new Response(null, { status: 204 })
-    : await dispatchMcp(request, env, url);
+  let response: Response;
+  try {
+    if (request.method === 'OPTIONS') {
+      enforceClientLimit(env, 'anonymous', clientIp(request));
+      response = new Response(null, { status: 204 });
+    } else response = await dispatchMcp(request, env, url);
+  } catch (err) {
+    // Errors (including 429) still get the CORS headers below.
+    response = errorResponse(err);
+  }
   const result = new Response(response.body, response);
   result.headers.set('cache-control', 'no-store');
   result.headers.append('vary', 'Origin');
@@ -189,18 +195,21 @@ export async function handleMcp(request: Request, env: Env): Promise<Response> {
     result.headers.set('access-control-allow-origin', origin);
     result.headers.set('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
     result.headers.set('access-control-allow-headers', 'authorization, content-type, mcp-protocol-version, mcp-method, mcp-name, mcp-session-id, last-event-id');
-    result.headers.set('access-control-expose-headers', 'www-authenticate, mcp-protocol-version');
+    result.headers.set('access-control-expose-headers', 'www-authenticate, mcp-protocol-version, retry-after');
   }
   return result;
 }
 
 async function dispatchMcp(request: Request, env: Env, url: URL): Promise<Response> {
-  enforceMemoryRateLimit(env, `mcp-ip:${request.headers.get('cf-connecting-ip') ?? 'local'}`, 1800, 60);
   const header = request.headers.get('authorization');
   const token = header?.match(/^Bearer +([A-Za-z0-9_-]{20,128})$/i)?.[1];
-  if (!token) return challenge(url, 401, header ? 'invalid_token' : undefined);
-  const principal = await resolveAccessToken(env.DB, token, mcpResource(url));
-  if (!principal) return challenge(url, 401, 'invalid_token');
+  const principal = token ? await resolveAccessToken(env.DB, token, mcpResource(url)) : null;
+  // The same per-user allowance as the REST API; per IP without a valid token.
+  if (principal) enforceClientLimit(env, 'user', principal.actor.userId);
+  else {
+    enforceClientLimit(env, 'anonymous', clientIp(request));
+    return challenge(url, 401, header ? 'invalid_token' : undefined);
+  }
 
   let parsedBody: unknown;
   if (request.method === 'POST' && /^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? '')) {

@@ -28,12 +28,15 @@ export class AppError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
   readonly details: Record<string, string> | undefined;
+  /** Seconds until a rate-limited request may be retried (sent as Retry-After). */
+  readonly retryAfter: number | undefined;
 
-  constructor(code: ErrorCode, message: string, details?: Record<string, string>) {
+  constructor(code: ErrorCode, message: string, details?: Record<string, string>, retryAfter?: number) {
     super(message);
     this.code = code;
     this.status = STATUS[code];
     this.details = details;
+    this.retryAfter = retryAfter;
   }
 }
 

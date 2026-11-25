@@ -7,6 +7,7 @@
 import { handleApi } from './api.ts';
 import type { Env } from './env.ts';
 import { corsHeaders, errorResponse, withSecurityHeaders } from './http.ts';
+import { chargeGlobalBudget, clientIp, enforceClientLimit } from './lib/ratelimit.ts';
 import { handleMcp } from './mcp/server.ts';
 import { handleOAuth, isOAuthPath, MCP_PATH } from './oauth.ts';
 
@@ -26,8 +27,16 @@ async function serveApp(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const isApi = url.pathname === '/api' || url.pathname.startsWith('/api/');
+    // Every Worker invocation counts toward the daily budget. Static files are
+    // served by Pages without invoking the Worker (see worker/static/_routes.json).
+    try {
+      chargeGlobalBudget(env, (promise) => ctx.waitUntil(promise));
+    } catch (err) {
+      return withSecurityHeaders(errorResponse(err), true);
+    }
     if (url.pathname === MCP_PATH || isOAuthPath(url.pathname)) {
       try {
         const response = await (url.pathname === MCP_PATH ? handleMcp(request, env) : handleOAuth(request, env));
@@ -39,8 +48,13 @@ export default {
         return withSecurityHeaders(errorResponse(err), true);
       }
     }
-    const isApi = url.pathname === '/api' || url.pathname.startsWith('/api/');
     if (!isApi) {
+      // The app shell (/ and deep links) is anonymous: no session lookup.
+      try {
+        enforceClientLimit(env, 'anonymous', clientIp(request));
+      } catch (err) {
+        return withSecurityHeaders(errorResponse(err), true);
+      }
       const response = withSecurityHeaders(await serveApp(request, env), false);
       if (url.pathname === '/oauth/authorize') {
         response.headers.set('referrer-policy', 'no-referrer');
@@ -51,6 +65,11 @@ export default {
 
     const cors = corsHeaders(request, env);
     if (request.method === 'OPTIONS') {
+      try {
+        enforceClientLimit(env, 'anonymous', clientIp(request));
+      } catch (err) {
+        return withSecurityHeaders(errorResponse(err), true);
+      }
       return withSecurityHeaders(new Response(null, { status: Object.keys(cors).length ? 204 : 403, headers: cors }), true);
     }
     let response: Response;

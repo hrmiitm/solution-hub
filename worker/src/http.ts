@@ -16,7 +16,8 @@ export function json(data: unknown, status = 200, headers: HeadersInit = {}): Re
 
 export function errorResponse(err: unknown): Response {
   if (err instanceof AppError) {
-    return json({ error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } }, err.status);
+    const headers: Record<string, string> = err.retryAfter ? { 'retry-after': String(err.retryAfter) } : {};
+    return json({ error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } }, err.status, headers);
   }
   // Never echo internal errors to clients; log without request data or secrets.
   console.error('Unhandled error:', err instanceof Error ? `${err.name}: ${err.message}` : 'unknown');

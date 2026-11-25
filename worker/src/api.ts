@@ -8,9 +8,9 @@ import { listConnections, makeConnectionReadOnly, revokeConnection } from './aut
 import type { Actor, Env } from './env.ts';
 import { assertCsrfSafe, json, readCookie, readJson, sessionCookie, sessionCookieName } from './http.ts';
 import { AppError } from './lib/errors.ts';
-import { enforceMemoryRateLimit, enforceRateLimit } from './lib/ratelimit.ts';
+import { clientIp, enforceClientLimit } from './lib/ratelimit.ts';
 import { splitList } from './lib/util.ts';
-import { SORTS, STATUSES, VISIBILITIES, validateConsentDecision, validateSolutionInput, validateUpdateMessage, type Status, type Visibility } from './lib/validation.ts';
+import { searchQuery, validateConsentDecision, validateSolutionInput, validateUpdateMessage, visibilityQuery } from './lib/validation.ts';
 import { checkAuthorizationRequest, decideAuthorization, describeAuthorizationRequest, mcpResource } from './oauth.ts';
 import type { Viewer } from './services/access.ts';
 import * as solutions from './services/solutions.ts';
@@ -37,9 +37,15 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
  * visitors (services then only expose public data); 'none' skips session lookup.
  */
 type AuthMode = 'required' | 'optional' | 'none';
-const routes: { method: Method; pattern: RegExp; keys: string[]; handler: Handler; auth: AuthMode; sameOrigin?: boolean }[] = [];
+interface RouteOptions {
+  auth?: AuthMode;
+  sameOrigin?: boolean;
+  /** Sign-in and consent endpoints use the per-IP auth rate limit instead of the user/anonymous one. */
+  authEndpoint?: boolean;
+}
+const routes: ({ method: Method; pattern: RegExp; keys: string[]; handler: Handler; auth: AuthMode } & RouteOptions)[] = [];
 
-function route(method: Method, path: string, handler: Handler, opts: { auth?: AuthMode; sameOrigin?: boolean } = {}) {
+function route(method: Method, path: string, handler: Handler, opts: RouteOptions = {}) {
   const keys: string[] = [];
   const pattern = new RegExp(
     `^${path.replace(/:([a-zA-Z]+)/g, (_, k: string) => {
@@ -47,10 +53,10 @@ function route(method: Method, path: string, handler: Handler, opts: { auth?: Au
       return '([^/]+)';
     })}$`,
   );
-  routes.push({ method, pattern, keys, handler, auth: opts.auth ?? 'required', sameOrigin: opts.sameOrigin });
+  routes.push({ ...opts, method, pattern, keys, handler, auth: opts.auth ?? 'required' });
 }
 
-const clientIp = (request: Request) => request.headers.get('cf-connecting-ip') ?? 'local';
+const authEndpoint = { auth: 'none', authEndpoint: true } as const;
 
 // --- auth ------------------------------------------------------------------
 
@@ -58,7 +64,6 @@ route(
   'POST',
   '/api/auth/google',
   async ({ request, env }) => {
-    await enforceRateLimit(env, `auth:${clientIp(request)}`, 60, 600);
     const body = (await readJson(request)) as { idToken?: unknown; client?: unknown };
     const client: SessionClient = body.client === 'native' ? 'native' : 'web';
     // Web logins set a cookie, so they get the same origin checks as other
@@ -72,7 +77,7 @@ route(
     const payload = { user: meBody(user), ...(client === 'native' ? { token: session.token, expiresAt: session.expiresAt } : {}) };
     return json(payload, 200, client === 'web' ? { 'set-cookie': sessionCookie(request, session.token, SESSION_TTL_SECONDS) } : {});
   },
-  { auth: 'none' },
+  authEndpoint,
 );
 
 route(
@@ -86,7 +91,7 @@ route(
     if (token) await revokeSession(env.DB, token);
     return json({ ok: true }, 200, { 'set-cookie': sessionCookie(request, '', 0) });
   },
-  { auth: 'none' },
+  authEndpoint,
 );
 
 const meBody = (u: Pick<UserRow, 'username' | 'name' | 'email' | 'avatar_url' | 'org_domain'>) => ({
@@ -105,15 +110,13 @@ route('GET', '/api/me', async ({ env, actor }) => {
 });
 
 route('GET', '/api/me/liked-solutions', async ({ env, actor, url }) =>
-  json(await solutions.searchSolutions(env.DB, actor(), searchParams(url), true)),
+  json(await solutions.searchSolutions(env.DB, actor(), searchQuery(url.searchParams), true)),
 );
 
 // --- MCP connector consent and management -----------------------------------
 
-route('GET', '/api/oauth/authorize', async ({ env, url, request }) => {
-  await enforceRateLimit(env, `oauth-authorize:${clientIp(request)}`, 120, 600);
-  return json(describeAuthorizationRequest(await checkAuthorizationRequest(env, url)));
-}, { auth: 'none' });
+route('GET', '/api/oauth/authorize', async ({ env, url }) =>
+  json(describeAuthorizationRequest(await checkAuthorizationRequest(env, url))), authEndpoint);
 
 route('POST', '/api/oauth/authorize', async ({ env, url, request }) => {
   if (request.headers.get('origin') !== url.origin) throw new AppError('forbidden', 'Cross-origin request rejected');
@@ -121,11 +124,10 @@ route('POST', '/api/oauth/authorize', async ({ env, url, request }) => {
   const cookie = readCookie(request, sessionCookieName(request));
   const actor = cookie ? await resolveSession(env.DB, cookie) : null;
   if (!actor) throw new AppError('unauthorized', 'Sign in with Google to connect');
-  await enforceRateLimit(env, `oauth-consent:${actor.userId}`, 60, 600);
   const decision = validateConsentDecision(await readJson(request));
   const authorization = await checkAuthorizationRequest(env, url);
   return json({ redirectTo: await decideAuthorization(env.DB, url, actor, authorization, decision.approve, decision.write) });
-}, { auth: 'none' });
+}, authEndpoint);
 
 route('GET', '/api/mcp/connections', async ({ env, actor, url }) => json({ items: await listConnections(env.DB, actor(), mcpResource(url)) }));
 
@@ -150,7 +152,7 @@ route(
   '/api/users/:username/solutions',
   async ({ env, viewer, params, url }) => {
     await getProfile(env.DB, viewer, params.username!); // 404 for unknown users
-    return json(await solutions.searchSolutions(env.DB, viewer, { ...searchParams(url), owner: params.username! }));
+    return json(await solutions.searchSolutions(env.DB, viewer, { ...searchQuery(url.searchParams), owner: params.username! }));
   },
   optional,
 );
@@ -165,7 +167,7 @@ route(
 
 // --- solutions -------------------------------------------------------------
 
-route('GET', '/api/solutions', async ({ env, viewer, url }) => json(await solutions.searchSolutions(env.DB, viewer, searchParams(url))), optional);
+route('GET', '/api/solutions', async ({ env, viewer, url }) => json(await solutions.searchSolutions(env.DB, viewer, searchQuery(url.searchParams))), optional);
 
 route('POST', '/api/solutions', async ({ request, env, actor }) => {
   const input = validateSolutionInput(await readJson(request), false);
@@ -207,45 +209,11 @@ route('POST', '/api/solutions/:id/updates', async ({ request, env, actor, params
 route(
   'GET',
   '/api/categories',
-  async ({ env, viewer, url }) => json(await solutions.listCategories(env.DB, viewer, visibilityParam(url))),
+  async ({ env, viewer, url }) => json(await solutions.listCategories(env.DB, viewer, visibilityQuery(url.searchParams))),
   optional,
 );
 
 // --- helpers ---------------------------------------------------------------
-
-function listParam(url: URL, key: string): string[] | undefined {
-  const values = url.searchParams
-    .getAll(key)
-    .flatMap((v) => v.split(','))
-    .map((v) => v.trim().slice(0, 50))
-    .filter(Boolean)
-    .slice(0, 10);
-  return values.length ? values : undefined;
-}
-
-function visibilityParam(url: URL): Visibility[] | undefined {
-  const values = (listParam(url, 'visibility') ?? []).filter((v): v is Visibility => (VISIBILITIES as readonly string[]).includes(v));
-  return values.length ? values : undefined;
-}
-
-function searchParams(url: URL): solutions.SearchParams {
-  const q = url.searchParams;
-  const status = q.get('status');
-  const sort = q.get('sort');
-  return {
-    q: (q.get('q') ?? '').slice(0, 200),
-    status: (STATUSES as readonly string[]).includes(status ?? '') ? (status as Status) : undefined,
-    visibility: visibilityParam(url),
-    types: listParam(url, 'type'),
-    industry: listParam(url, 'industry'),
-    function: listParam(url, 'function'),
-    category: listParam(url, 'category'),
-    technology: listParam(url, 'technology'),
-    sort: SORTS.find((value) => value === sort),
-    page: Number.parseInt(q.get('page') ?? '1', 10) || 1,
-    limit: Number.parseInt(q.get('limit') ?? '24', 10) || 24,
-  };
-}
 
 function bearerToken(request: Request): string | null {
   const header = request.headers.get('authorization');
@@ -264,12 +232,14 @@ async function authenticate(request: Request, env: Env): Promise<{ actor: Actor 
 
 export async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  enforceMemoryRateLimit(env, `ip:${clientIp(request)}`, 1800, 60);
+  const ip = clientIp(request);
 
   const candidates = routes.filter((r) => r.pattern.test(url.pathname));
-  if (!candidates.length) throw new AppError('not_found', 'Endpoint not found');
   const match = candidates.find((r) => r.method === request.method);
-  if (!match) throw new AppError('method_not_allowed', 'Method not allowed');
+  if (!match) {
+    enforceClientLimit(env, 'anonymous', ip);
+    throw candidates.length ? new AppError('method_not_allowed', 'Method not allowed') : new AppError('not_found', 'Endpoint not found');
+  }
 
   const values = match.pattern.exec(url.pathname)!.slice(1);
   const params: Record<string, string> = {};
@@ -282,18 +252,21 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
   }
 
   let actor: Actor | null = null;
-  if (match.auth !== 'none') {
+  if (match.authEndpoint) enforceClientLimit(env, 'auth', ip);
+  else if (match.auth !== 'none') {
     const auth = await authenticate(request, env);
     actor = auth.actor;
+    // One shared allowance per user across REST and MCP; per IP otherwise.
+    if (actor) enforceClientLimit(env, 'user', actor.userId);
+    else enforceClientLimit(env, 'anonymous', ip);
     if (!actor && match.auth === 'required') throw new AppError('unauthorized', 'Sign in required');
     if (actor && request.method !== 'GET') {
       if (auth.viaCookie && (match.sameOrigin || url.pathname.startsWith('/api/mcp/')) && request.headers.get('origin') !== url.origin) {
         throw new AppError('forbidden', 'Cross-origin request rejected');
       }
       if (auth.viaCookie) assertCsrfSafe(request, env);
-      await enforceRateLimit(env, `write:${actor.userId}`, 360, 600);
     }
-  }
+  } else enforceClientLimit(env, 'anonymous', ip);
 
   return match.handler({
     request,

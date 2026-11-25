@@ -10,5 +10,7 @@ set -a; source .env; set +a
 ids="$GOOGLE_OAUTH_WEB_CLIENT_ID"
 [[ -n "${GOOGLE_OAUTH_ANDROID_CLIENT_ID:-}" ]] && ids="$ids,$GOOGLE_OAUTH_ANDROID_CLIENT_ID"
 umask 077
-printf 'GOOGLE_CLIENT_IDS=%s\n' "$ids" > worker/.dev.vars
+# Local development and the integration suite run without rate limits, so tests
+# never exercise (or exhaust) them. Production uses the vars in wrangler.jsonc.
+printf 'GOOGLE_CLIENT_IDS=%s\nRATE_LIMITS_ENABLED=false\nRATE_LIMIT_GLOBAL_PER_DAY=0\n' "$ids" > worker/.dev.vars
 echo "Wrote worker/.dev.vars"

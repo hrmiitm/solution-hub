@@ -16,7 +16,15 @@
     // Extra cross-origin web origins allowed for CORS (comma-separated).
     // Same-origin requests never need this; empty means no CORS.
     "ALLOWED_ORIGINS": "",
-    "RATE_LIMITS_ENABLED": "false"
+    // Rate limits (worker/src/lib/ratelimit.ts, README "Rate limits"). Change and redeploy.
+    // "false" turns off the per-client limits below; 0 turns off one limit.
+    "RATE_LIMITS_ENABLED": "true",
+    "RATE_LIMIT_WINDOW_SECONDS": "300",
+    "RATE_LIMIT_USER": "2000",       // per signed-in user, REST + MCP combined, per window
+    "RATE_LIMIT_ANONYMOUS": "300",   // per IP without a valid session or token, per window
+    "RATE_LIMIT_AUTH": "50",         // per IP: sign-in, consent, OAuth register/token/revoke, per window
+    // Requests per UTC day for the whole app (independent of RATE_LIMITS_ENABLED; 0 = off).
+    "RATE_LIMIT_GLOBAL_PER_DAY": "80000"
   },
   "d1_databases": [
     {

@@ -23,6 +23,9 @@ build_web() {
   echo "==> Worker bundle"
   rm -rf worker/dist
   cp -r app/build/web worker/dist
+  # Pages serves the static files in _routes.json "exclude" without invoking the
+  # Worker (no request quota or rate-limit budget used); _headers secures them.
+  cp worker/static/_routes.json worker/static/_headers worker/dist/
   (cd worker && npm run -s bundle)
 }
 

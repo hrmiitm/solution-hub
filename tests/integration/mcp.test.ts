@@ -155,7 +155,6 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
 
   after(() => {
     d1(`DELETE FROM users WHERE id IN (${users.map((u) => `'${u.id}'`).join(',')});` +
-      `DELETE FROM rate_limits WHERE key LIKE '%:${testIp}';` +
       (clients.length ? `DELETE FROM oauth_clients WHERE id IN (${clients.map((id) => `'${id}'`).join(',')});` : ''));
   });
 
@@ -427,6 +426,56 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal((await tool(readAccess, 'list_liked_solutions')).total, 1);
     for (const name of ['like_solution', 'unlike_solution']) {
       assert.equal((await tool(memberAccess, name, { solution: organization.ref })).error.code, 'not_found');
+    }
+  });
+
+  test('REST and MCP agree on what every account can see and change', async () => {
+    const client = (await register()).client_id;
+    const tag = `parity${run}`;
+    const ownerToken = (await connect(client, owner, true)).access_token;
+    const cards: Record<string, { id: string; ref: string }> = {};
+    for (const visibility of ['public', 'organization', 'private']) {
+      const card = await tool(ownerToken, 'create_solution', { title: `Parity ${visibility} ${tag}`, descriptionMd: `Parity ${tag}`, visibility });
+      cards[visibility] = { id: card.id, ref: card.ref };
+    }
+    const expected: Record<string, string[]> = {
+      owner: ['public', 'organization', 'private'], member: ['public', 'organization'], outsider: ['public'], personal: ['public'],
+    };
+    const rest = (path: string, account: typeof owner | null, init: RequestInit = {}) =>
+      request(path, { ...init, headers: { ...(account ? { cookie: `sh_session=${account.session}` } : {}), ...(init.headers as Record<string, string> ?? {}) } });
+    const ids = (items: { id: string }[]) => items.map((item) => item.id).sort();
+    const visibleIds = (levels: string[]) => levels.map((level) => cards[level]!.id).sort();
+
+    const anonymous = await rest(`/api/solutions?q=${tag}`, null);
+    assert.deepEqual(ids(anonymous.data.items), visibleIds(['public']));
+    for (const [name, account] of Object.entries({ owner, member, outsider, personal })) {
+      const token = name === 'owner' ? ownerToken : (await connect(client, account, true)).access_token;
+      const viaRest = await rest(`/api/solutions?q=${tag}`, account);
+      const viaMcp = await tool(token, 'search_solutions', { query: tag, limit: 50 });
+      assert.deepEqual(ids(viaRest.data.items), visibleIds(expected[name]!), `REST search for ${name}`);
+      assert.deepEqual(ids(viaMcp.items), ids(viaRest.data.items), `MCP search for ${name}`);
+      for (const [level, card] of Object.entries(cards)) {
+        const canSee = expected[name]!.includes(level);
+        assert.equal((await rest(`/api/solutions/${card.id}`, account)).status, canSee ? 200 : 404, `REST ${name}/${level}`);
+        assert.equal((await rest(`/api/solutions/${card.id}/updates`, account)).status, canSee ? 200 : 404, `REST history ${name}/${level}`);
+        const detail = await rpc(token, 'tools/call', { name: 'get_solution', arguments: { solution: card.ref } });
+        assert.equal(detail.data.result.isError === true, !canSee, `MCP ${name}/${level}`);
+        if (!canSee) assert.equal(detail.data.result.structuredContent.error.code, 'not_found');
+        if (name !== 'owner' && canSee) {
+          const edit = await rpc(token, 'tools/call', { name: 'update_solution', arguments: { solution: card.ref, title: 'Hijacked' } });
+          assert.equal(edit.data.result.structuredContent.error.code, 'forbidden', `MCP edit ${name}/${level}`);
+          const restEdit = await rest(`/api/solutions/${card.id}`, account, {
+            method: 'PATCH', headers: { origin: base, 'x-solutionhub-csrf': '1', 'content-type': 'application/json' }, body: JSON.stringify({ title: 'Hijacked' }),
+          });
+          assert.equal(restEdit.status, 403, `REST edit ${name}/${level}`);
+        }
+      }
+      const restProfile = await rest(`/api/users/${owner.username}`, account);
+      const mcpProfile = await tool(token, 'get_profile', { username: owner.username });
+      assert.deepEqual(mcpProfile.counts, restProfile.data.counts, `profile counts for ${name}`);
+    }
+    for (const card of Object.values(cards)) {
+      assert.equal((await rest(`/api/solutions/${card.id}`, owner, { method: 'DELETE', headers: { origin: base, 'x-solutionhub-csrf': '1' } })).status, 204);
     }
   });
 
