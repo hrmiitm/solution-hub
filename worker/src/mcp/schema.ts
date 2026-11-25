@@ -22,6 +22,13 @@ export const SOLUTION_REF: Schema = {
   description: 'The solution: its id, "username/slug", or its SolutionHub URL (https://<host>/<username>/<slug>).',
 };
 
+const CHANGE_NOTE = {
+  type: 'string',
+  minLength: 1,
+  maxLength: LIMITS.updateMessage,
+  description: 'Explain what changed and why. Appears in the history of the solution alongside the action.',
+} satisfies Schema;
+
 /** Fields an owner can set. Arrays replace the stored list as a whole. */
 export const SOLUTION_FIELDS: Record<string, Schema> = {
   title: { type: 'string', minLength: 1, maxLength: LIMITS.title, description: 'Short, specific name of the solution.' },
@@ -124,7 +131,7 @@ export const INPUT_SCHEMAS = {
     visibility: { type: 'array', items: { type: 'string', enum: [...VISIBILITIES] }, description: 'Count only solutions with these visibility levels.' },
   }),
   create_solution: object(SOLUTION_FIELDS, ['title', 'descriptionMd']),
-  update_solution: object({ solution: SOLUTION_REF, ...SOLUTION_FIELDS }, ['solution']),
+  update_solution: object({ solution: SOLUTION_REF, ...SOLUTION_FIELDS, changeNote: CHANGE_NOTE }, ['solution']),
   add_progress_update: object(
     {
       solution: SOLUTION_REF,
@@ -136,7 +143,8 @@ export const INPUT_SCHEMAS = {
     {
       solution: SOLUTION_REF,
       status: { type: 'string', enum: [...STATUSES], description: '"completed" marks it done; "ongoing" reopens it.' },
-      message: { type: 'string', minLength: 1, maxLength: LIMITS.updateMessage, description: 'Optional note, recorded as a progress update.' },
+      changeNote: { ...CHANGE_NOTE, description: 'Optional explanation included with the completion event.' },
+      message: { type: 'string', minLength: 1, maxLength: LIMITS.updateMessage, description: 'Optional progress update when marking completed.' },
     },
     ['solution', 'status'],
   ),
@@ -176,7 +184,7 @@ export function solutionSchemaDocument(origin: string) {
         properties: {
           eventType: { type: 'string', enum: ['created', 'edited', 'progress_updated', 'status_changed', 'visibility_changed'] },
           message: { type: 'string' },
-          changes: { type: 'object' },
+          changes: { type: 'object', properties: { note: CHANGE_NOTE } },
           createdAt: { type: 'string', format: 'date-time' },
           author: { type: 'object', properties: { username: { type: 'string' }, name: { type: 'string' } } },
         },

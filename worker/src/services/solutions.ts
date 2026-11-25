@@ -243,9 +243,8 @@ const CONTENT_FIELDS: { key: keyof SolutionInput; column: keyof SolutionRow; lab
 ];
 
 /**
- * Applies a partial update. Content edits, visibility changes and status
- * transitions are each recorded as their own history event, atomically with
- * the row update (single D1 batch = single transaction).
+ * Applies a partial update. Content edits, visibility changes and completion
+ * are recorded atomically with the row update. Reopening only changes state.
  */
 export async function updateSolution(db: D1Database, viewer: Viewer, id: string, input: SolutionInput, progressMessage?: string): Promise<Solution> {
   const { row, actor } = await loadOwned(db, viewer, id);
@@ -271,6 +270,10 @@ export async function updateSolution(db: D1Database, viewer: Viewer, id: string,
   }
 
   const stmts: D1PreparedStatement[] = [];
+  const recordChange = (type: UpdateEventType, message: string, changes: Record<string, unknown>) => {
+    if (!stmts.length && input.changeNote) changes.note = input.changeNote;
+    stmts.push(updateStmt(db, id, actor.userId, type, message, changes, now));
+  };
   if (changedLabels.length) {
     const changes: Record<string, unknown> = { fields: changedLabels };
     if (input.resources) {
@@ -279,25 +282,25 @@ export async function updateSolution(db: D1Database, viewer: Viewer, id: string,
       const removed = before.filter((b) => !input.resources!.some((r) => r.url === b.url)).map((r) => r.label);
       if (added.length || removed.length) changes.resources = { added, removed };
     }
-    stmts.push(updateStmt(db, id, actor.userId, 'edited', `Edited ${changedLabels.join(', ')}`, changes, now));
+    recordChange('edited', `Edited ${changedLabels.join(', ')}`, changes);
   }
   if (input.visibility && input.visibility !== row.visibility) {
     assertCanAssign(actor, input.visibility);
     next.visibility = input.visibility;
     const label = { public: 'Made public', organization: 'Shared with the organization', private: 'Made private' }[input.visibility];
-    stmts.push(
-      updateStmt(db, id, actor.userId, 'visibility_changed', label, { from: row.visibility, to: input.visibility }, now),
-    );
+    recordChange('visibility_changed', label, { from: row.visibility, to: input.visibility });
   }
   if (input.status && input.status !== row.status) {
     next.status = input.status;
     next.completed_at = input.status === 'completed' ? now : null;
-    stmts.push(
-      updateStmt(db, id, actor.userId, 'status_changed', input.status === 'completed' ? 'Marked as completed' : 'Reopened', { from: row.status, to: input.status }, now),
-    );
+    if (input.status === 'completed') {
+      recordChange('status_changed', 'Marked as completed', { from: row.status, to: input.status });
+    }
   }
-  if (progressMessage) stmts.push(updateStmt(db, id, actor.userId, 'progress_updated', progressMessage, {}, now));
-  if (!stmts.length) return toSolution(row, actor, true);
+  if (progressMessage && input.status !== 'ongoing') {
+    stmts.push(updateStmt(db, id, actor.userId, 'progress_updated', progressMessage, {}, now));
+  }
+  if (!stmts.length && !Object.keys(next).length) return toSolution(row, actor, true);
 
   next.updated_at = now;
   const columns = Object.keys(next);

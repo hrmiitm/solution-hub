@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../util/format.dart';
 import '../util/keywords.dart';
 import '../util/resources.dart';
+import '../widgets/change_note_dialog.dart';
 import '../widgets/common.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/tag_input.dart';
@@ -70,6 +71,7 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
   bool _previewDescription = false;
   bool _moreOpen = false;
   bool _submitted = false;
+  String? _changeNote;
 
   Solution? _original;
   Categories _categories = Categories.empty;
@@ -222,20 +224,33 @@ class _SolutionFormPageState extends State<SolutionFormPage> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     setState(() {
+      _saving = true;
       _serverErrors = {};
       _submitted = true;
       _previewDescription = false; // so the description field is validated
     });
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted) return;
-    if (!_formKey.currentState!.validate()) {
-      showMessage(context, 'Please fix the highlighted fields.');
-      return;
-    }
-    setState(() => _saving = true);
     try {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      if (!_formKey.currentState!.validate()) {
+        showMessage(context, 'Please fix the highlighted fields.');
+        return;
+      }
       final payload = _payload();
+      if (widget.isEdit) {
+        final note = await showChangeNoteDialog(
+          context,
+          title: 'Save changes?',
+          action: 'Save changes',
+          hint: 'Summarize what changed and why.',
+          initialNote: _changeNote,
+        );
+        if (!mounted || note == null) return;
+        _changeNote = note;
+        payload['changeNote'] = note;
+      }
       final saved = widget.isEdit
           ? await _api.updateSolution(_original!.id, payload)
           : await _api.createSolution(payload);

@@ -8,6 +8,7 @@ import '../app_scope.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../util/resources.dart';
+import '../widgets/change_note_dialog.dart';
 import '../widgets/common.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/resource_preview.dart';
@@ -26,6 +27,7 @@ class _SolutionPageState extends State<SolutionPage> {
   List<SolutionUpdate> _updates = [];
   Object? _error;
   bool _busy = false;
+  ({String title, String note})? _pendingChangeNote;
 
   ApiClient get _api => AppScope.of(context).api;
 
@@ -39,6 +41,7 @@ class _SolutionPageState extends State<SolutionPage> {
   void didUpdateWidget(SolutionPage old) {
     super.didUpdateWidget(old);
     if (old.username != widget.username || old.slug != widget.slug) {
+      _pendingChangeNote = null;
       setState(() => _s = null);
       _load();
     }
@@ -72,17 +75,62 @@ class _SolutionPageState extends State<SolutionPage> {
     }
   }
 
-  Future<void> _patch(Map<String, dynamic> changes, String success) =>
-      _run(() async {
-        final s = await _api.updateSolution(_s!.id, changes);
-        final updates = await _api.updates(s.id);
-        if (mounted) {
-          setState(() {
-            _s = s;
-            _updates = updates;
-          });
+  Future<void> _patch(
+    Map<String, dynamic> changes, {
+    required String title,
+    required String action,
+    required String hint,
+    required String success,
+  }) async {
+    if (_busy) return;
+    final id = _s!.id;
+    await _run(() async {
+      final note = await showChangeNoteDialog(
+        context,
+        title: title,
+        action: action,
+        hint: hint,
+        initialNote: _pendingChangeNote?.title == title
+            ? _pendingChangeNote?.note
+            : null,
+      );
+      if (!mounted || _s?.id != id || note == null) return;
+      _pendingChangeNote = (title: title, note: note);
+      final saved = await _api.updateSolution(id, {
+        ...changes,
+        'changeNote': note,
+      });
+      if (!mounted || _s?.id != id) return;
+      _pendingChangeNote = null;
+      setState(() => _s = saved);
+      try {
+        final updates = await _api.updates(id);
+        if (!mounted || _s?.id != id) return;
+        setState(() => _updates = updates);
+        showMessage(context, success);
+      } on ApiException {
+        if (mounted && _s?.id == id) {
+          showMessage(context, '$success. Refresh the page to see the note.');
         }
-      }, success: success);
+      }
+    });
+  }
+
+  Future<void> _complete() => _patch(
+    {'status': SolutionStatus.completed.name},
+    title: 'Mark as completed?',
+    action: 'Mark completed',
+    hint: 'What was delivered or verified?',
+    success: 'Marked as completed',
+  );
+
+  Future<void> _reopen() => _run(() async {
+    final id = _s!.id;
+    final saved = await _api.updateSolution(id, {
+      'status': SolutionStatus.ongoing.name,
+    });
+    if (mounted && _s?.id == id) setState(() => _s = saved);
+  }, success: 'Solution reopened');
 
   Future<void> _delete() async {
     final ok = await showDialog<bool>(
@@ -299,20 +347,12 @@ class _SolutionPageState extends State<SolutionPage> {
                 ),
                 s.isCompleted
                     ? OutlinedButton.icon(
-                        onPressed: _busy
-                            ? null
-                            : () => _patch({
-                                'status': 'ongoing',
-                              }, 'Solution reopened'),
+                        onPressed: _busy ? null : _reopen,
                         icon: const Icon(Icons.replay, size: 16),
                         label: const Text('Reopen'),
                       )
                     : FilledButton.icon(
-                        onPressed: _busy
-                            ? null
-                            : () => _patch({
-                                'status': 'completed',
-                              }, 'Marked as completed'),
+                        onPressed: _busy ? null : _complete,
                         icon: const Icon(Icons.check_circle_outline, size: 16),
                         label: const Text('Mark completed'),
                       ),
@@ -320,8 +360,13 @@ class _SolutionPageState extends State<SolutionPage> {
                   current: s.visibility,
                   orgDomain: AppScope.of(context).auth.me?.orgDomain,
                   enabled: !_busy,
-                  onSelected: (v) =>
-                      _patch({'visibility': v.name}, 'Visibility: ${v.label}'),
+                  onSelected: (v) => _patch(
+                    {'visibility': v.name},
+                    title: 'Change visibility to ${v.label.toLowerCase()}?',
+                    action: 'Change visibility',
+                    hint: 'Why are you changing who can see this solution?',
+                    success: 'Visibility changed to ${v.label.toLowerCase()}',
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _delete,
@@ -730,6 +775,16 @@ class _HistoryPanelState extends State<_HistoryPanel> {
                             Text(
                               u.message,
                               style: const TextStyle(color: Color(0xFF3B4A63)),
+                            ),
+                          if (u.changeNote case final note?)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: SelectableText(
+                                note,
+                                style: const TextStyle(
+                                  color: Color(0xFF3B4A63),
+                                ),
+                              ),
                             ),
                           if (_resourceDiff(u) case final diff?)
                             Padding(

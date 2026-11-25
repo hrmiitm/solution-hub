@@ -296,14 +296,33 @@ describe('remote MCP and OAuth', { skip: process.env.D1_TARGET === 'remote' }, (
     assert.equal(await seesTag(same.access_token), true);
     assert.equal(await seesTag(other.access_token), false);
 
-    assert.equal((await tool(access, 'update_solution', { solution: priv.ref, summary: 'Polished description' })).summary, 'Polished description');
+    assert.equal((await tool(access, 'update_solution', {
+      solution: priv.ref,
+      summary: 'Polished description',
+      changeNote: 'Clarified what the demo covers.',
+    })).summary, 'Polished description');
     await tool(access, 'add_progress_update', { solution: priv.id, message: 'Tests passed' });
-    assert.equal((await tool(access, 'change_solution_status', { solution: priv.id, status: 'completed', message: 'Delivered' })).status, 'completed');
+    assert.equal((await tool(access, 'change_solution_status', {
+      solution: priv.id,
+      status: 'completed',
+      changeNote: 'The demo passed its acceptance checks.',
+      message: 'Delivered',
+    })).status, 'completed');
     const history = (await tool(access, 'get_solution_updates', { solution: priv.id })).items;
     assert.deepEqual(new Set(history.map((event: { eventType: string }) => event.eventType)), new Set(['created', 'edited', 'progress_updated', 'status_changed']));
     assert.ok(history.some((event: { message: string }) => event.message === 'Delivered'));
+    assert.equal(history.find((event: { eventType: string }) => event.eventType === 'edited').changes.note, 'Clarified what the demo covers.');
+    assert.equal(history.find((event: { eventType: string }) => event.eventType === 'status_changed').changes.note, 'The demo passed its acceptance checks.');
     assert.equal((await tool(access, 'get_solution', { solution: priv.id, history_limit: 2 })).history.length, 2);
-    assert.equal((await tool(access, 'change_solution_status', { solution: priv.id, status: 'ongoing' })).completedAt, null);
+    const reopened = await tool(access, 'change_solution_status', {
+      solution: priv.id,
+      status: 'ongoing',
+      changeNote: 'A note supplied to a reopen request',
+      message: 'A progress message supplied to a reopen request',
+    });
+    assert.equal(reopened.status, 'ongoing');
+    assert.equal(reopened.completedAt, null);
+    assert.deepEqual((await tool(access, 'get_solution_updates', { solution: priv.id })).items, history);
   });
 
   test('scope downgrade, refresh rotation, revocation, and expiration', async () => {

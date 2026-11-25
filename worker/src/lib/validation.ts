@@ -39,6 +39,8 @@ export interface SolutionInput {
   primaryResource?: string | null;
   visibility?: Visibility;
   status?: Status;
+  /** Explanation attached to an actual change in the history. */
+  changeNote?: string;
 }
 
 type Errors = Record<string, string>;
@@ -191,6 +193,9 @@ export function validateSolutionInput(body: unknown, partial: boolean): Solution
   };
   const client = str(b, 'client', LIMITS.client, errors);
   if (client !== undefined) input.client = client || null;
+  if (partial && b.changeNote !== undefined) {
+    input.changeNote = str(b, 'changeNote', LIMITS.updateMessage, errors, { multiline: true, required: true });
+  }
 
   if (Object.keys(errors).length) {
     throw new AppError('validation_failed', 'Some fields are invalid', errors);

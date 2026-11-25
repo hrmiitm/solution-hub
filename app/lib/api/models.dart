@@ -255,6 +255,11 @@ class SolutionUpdate {
   final DateTime createdAt;
   final Owner author;
 
+  String? get changeNote => switch (changes['note']) {
+    final String note when note.isNotEmpty => note,
+    _ => null,
+  };
+
   factory SolutionUpdate.fromJson(Map<String, dynamic> j) => SolutionUpdate(
     id: j['id'] as String,
     eventType: j['eventType'] as String,

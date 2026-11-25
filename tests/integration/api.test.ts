@@ -184,15 +184,23 @@ describe('solution lifecycle', () => {
     assert.equal((await api(alice, 'GET', `/api/solutions/${id}`)).body.title, `Speech Translator ${tag}`);
   });
 
-  test('edits, progress, completion, post-completion updates and reopening are recorded', async () => {
+  test('edits and completion record notes while reopening leaves history intact', async () => {
     const before = (await api(alice, 'GET', `/api/solutions/${id}`)).body.updatedAt;
-    const noop = await api(alice, 'PATCH', `/api/solutions/${id}`, { title: `Speech Translator ${tag}` });
+    const noop = await api(alice, 'PATCH', `/api/solutions/${id}`, {
+      title: `Speech Translator ${tag}`,
+      changeNote: 'No fields changed',
+    });
     assert.equal(noop.body.updatedAt, before, 'no-op edits do not bump updated_at');
+
+    const blank = await api(alice, 'PATCH', `/api/solutions/${id}`, { status: 'completed', changeNote: '  \n  ' });
+    assert.equal(blank.status, 422);
+    assert.equal(blank.body.error.details.changeNote, 'Required');
 
     const edit = await api(alice, 'PATCH', `/api/solutions/${id}`, {
       title: `Speech Translator Pro ${tag}`,
       resources: [{ label: 'Paper', url: 'https://arxiv.org/pdf/2212.04356' }],
       primaryResource: 'https://arxiv.org/pdf/2212.04356',
+      changeNote: '  Replaced the repository link with the reference paper.  ',
     });
     assert.equal(edit.status, 200);
     assert.equal(edit.body.slug, slug, 'slug is stable across title edits');
@@ -200,28 +208,46 @@ describe('solution lifecycle', () => {
     assert.ok(edit.body.updatedAt > before);
 
     assert.equal((await api(alice, 'POST', `/api/solutions/${id}/updates`, { message: 'Halfway there' })).status, 201);
-    const done = await api(alice, 'PATCH', `/api/solutions/${id}`, { status: 'completed' });
+    const done = await api(alice, 'PATCH', `/api/solutions/${id}`, {
+      status: 'completed',
+      changeNote: 'Verified the demo and finished the handoff.',
+    });
     assert.equal(done.body.status, 'completed');
     assert.ok(done.body.completedAt);
     assert.equal((await api(alice, 'POST', `/api/solutions/${id}/updates`, { message: 'Post-launch fix' })).status, 201);
-    const reopened = await api(alice, 'PATCH', `/api/solutions/${id}`, { status: 'ongoing' });
+    const beforeReopen = (await api(alice, 'GET', `/api/solutions/${id}/updates`)).body.items;
+    const reopened = await api(alice, 'PATCH', `/api/solutions/${id}`, {
+      status: 'ongoing',
+      changeNote: 'A note supplied to a reopen request',
+    });
     assert.equal(reopened.body.status, 'ongoing');
     assert.equal(reopened.body.completedAt, null);
 
     const h = await api(alice, 'GET', `/api/solutions/${id}/updates`);
+    assert.deepEqual(h.body.items, beforeReopen);
     assert.deepEqual(
       h.body.items.map((e: any) => e.eventType),
-      ['status_changed', 'progress_updated', 'status_changed', 'progress_updated', 'edited', 'created'],
+      ['progress_updated', 'status_changed', 'progress_updated', 'edited', 'created'],
     );
-    assert.deepEqual(h.body.items[4].changes.resources, { added: ['Paper'], removed: ['Repo'] });
+    assert.deepEqual(h.body.items[3].changes.resources, { added: ['Paper'], removed: ['Repo'] });
+    assert.equal(h.body.items[3].changes.note, 'Replaced the repository link with the reference paper.');
+    assert.deepEqual(h.body.items[1].changes, {
+      from: 'ongoing', to: 'completed', note: 'Verified the demo and finished the handoff.',
+    });
     assert.equal((await api(bob, 'GET', `/api/solutions/${id}/updates`)).status, 200, 'public history is readable');
   });
 
   test('private solutions are hidden from other users everywhere', async () => {
-    const vis = await api(alice, 'PATCH', `/api/solutions/${id}`, { visibility: 'private', industry: [`Secret${tag}`] });
+    const vis = await api(alice, 'PATCH', `/api/solutions/${id}`, {
+      visibility: 'private',
+      changeNote: 'Keep the review internal.',
+    });
     assert.equal(vis.body.visibility, 'private');
-    const events = (await api(alice, 'GET', `/api/solutions/${id}/updates`)).body.items.map((e: any) => e.eventType);
-    assert.ok(events.includes('visibility_changed'));
+    const event = (await api(alice, 'GET', `/api/solutions/${id}/updates`)).body.items[0];
+    assert.equal(event.eventType, 'visibility_changed');
+    assert.equal(event.changes.note, 'Keep the review internal.');
+    const edit = await api(alice, 'PATCH', `/api/solutions/${id}`, { industry: [`Secret${tag}`] });
+    assert.deepEqual(edit.body.industry, [`Secret${tag}`]);
 
     assert.equal((await api(bob, 'GET', `/api/solutions/${id}`)).status, 404);
     assert.equal((await api(bob, 'GET', `/api/solutions/${id}/updates`)).status, 404);

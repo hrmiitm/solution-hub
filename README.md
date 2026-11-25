@@ -33,9 +33,10 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
   files, each with a fallback link. Repositories, models, demos and docs show
   as links.
 - Lifecycle: every solution starts *Ongoing*. It can be marked *Completed*,
-  reopened, and updated after completion. Creation, edits (including resource
-  changes), visibility changes, status changes and progress updates are all
-  recorded in the history.
+  reopened, and updated after completion. Creation, edits, visibility changes,
+  completion and progress updates appear in Update history. When you save
+  edits, change visibility or complete a solution in the app, enter a note
+  explaining why. Reopening changes the status without adding a history entry.
 - Explore: keyword search (case-insensitive, multi-term, partial,
   relevance-ranked), filters (status and type by default; category,
   technology, industry and function can be added via "Customize filters"),
@@ -83,9 +84,9 @@ immediately. Disconnecting revokes the connection and its tokens.
 | `get_solution_updates` | Get a visible card’s recent history. |
 | `list_categories` | Get filter values and counts computed from visible cards. |
 | `create_solution` | Create a card owned by the connected account. Defaults to private. |
-| `update_solution` | Edit an owned card’s fields. |
+| `update_solution` | Edit an owned card’s fields and optionally explain the change with `changeNote`. |
 | `add_progress_update` | Post a progress note to an owned card. |
-| `change_solution_status` | Complete or reopen an owned card and optionally record a note. |
+| `change_solution_status` | Complete or reopen an owned card. Use `changeNote` to explain a completion. |
 
 Tools accept a solution ID, `username/slug`, or full SolutionHub card URL.
 MCP resources expose the solution schema, category definitions and usage

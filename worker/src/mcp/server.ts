@@ -11,7 +11,7 @@ import { mcpResource, resourceMetadataUrl } from '../oauth.ts';
 import * as solutions from '../services/solutions.ts';
 import { getProfile } from '../services/users.ts';
 import { INSTRUCTIONS, PROMPTS, RESOURCES } from './content.ts';
-import { INPUT_SCHEMAS, SOLUTION_FIELDS } from './schema.ts';
+import { INPUT_SCHEMAS } from './schema.ts';
 
 type ToolName = keyof typeof INPUT_SCHEMAS;
 const descriptions: Record<ToolName, string> = {
@@ -21,9 +21,9 @@ const descriptions: Record<ToolName, string> = {
   get_solution_updates: 'Read the recent creation, edit, progress, status and visibility history of a solution you can see.',
   list_categories: 'List categories, technologies and other filter values with counts over solutions visible to you.',
   create_solution: 'Create a solution owned by the connected account. Defaults to private. Requires write consent.',
-  update_solution: 'Edit fields of a solution you own. Fields you omit keep their existing values. Requires write consent.',
+  update_solution: 'Edit fields of a solution you own and explain the change in its history. Fields you omit keep their existing values. Requires write consent.',
   add_progress_update: 'Add a Markdown progress note to a solution you own. Requires write consent.',
-  change_solution_status: 'Complete or reopen a solution you own and optionally record a progress note. Requires write consent.',
+  change_solution_status: 'Complete or reopen a solution you own. A completion can include an explanation in its history. Requires write consent.',
 };
 const writeTools = new Set<string>(['create_solution', 'update_solution', 'add_progress_update', 'change_solution_status']);
 const tools: Tool[] = (Object.keys(descriptions) as ToolName[]).map((name) => ({
@@ -80,8 +80,7 @@ async function runTool(db: D1Database, principal: McpPrincipal, origin: string, 
       return solutionBody(origin, await solutions.createSolution(db, actor, validateSolutionInput(args, false)));
     case 'update_solution': {
       const solution = await find();
-      const fields = Object.fromEntries(Object.entries(args).filter(([key]) => Object.hasOwn(SOLUTION_FIELDS, key)));
-      return solutionBody(origin, await solutions.updateSolution(db, actor, solution.id, validateSolutionInput(fields, true)));
+      return solutionBody(origin, await solutions.updateSolution(db, actor, solution.id, validateSolutionInput(args, true)));
     }
     case 'add_progress_update': {
       const solution = await find();
@@ -91,8 +90,9 @@ async function runTool(db: D1Database, principal: McpPrincipal, origin: string, 
     case 'change_solution_status': {
       const solution = await find();
       const status = validateStatus(args.status);
-      const note = args.message === undefined ? undefined : validateUpdateMessage(args);
-      return solutionBody(origin, await solutions.updateSolution(db, actor, solution.id, { status }, note));
+      const note = status === 'completed' && args.message !== undefined ? validateUpdateMessage(args) : undefined;
+      const input = validateSolutionInput({ status, changeNote: status === 'completed' ? args.changeNote : undefined }, true);
+      return solutionBody(origin, await solutions.updateSolution(db, actor, solution.id, input, note));
     }
   }
 }
