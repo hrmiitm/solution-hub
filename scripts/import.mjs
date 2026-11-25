@@ -88,18 +88,26 @@ switch (cmd) {
       if (s.payload.input.thumbnailUrl) urls.set(s.payload.input.thumbnailUrl, s.repoMeta.repo);
     }
     let bad = 0;
-    await Promise.all(
-      [...urls].map(async ([url, repo]) => {
+    const check = async ([url, repo]) => {
+      // Few at a time, and retry throttling (429) and transient server errors: hosts like GitHub rate-limit bursts.
+      for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const res = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 solutionhub-link-check', range: 'bytes=0-0' }, signal: AbortSignal.timeout(25_000) });
-          // 405 is how MCP endpoints answer a plain GET; they are not listed as resources anyway.
-          if (res.status >= 400) throw new Error(`HTTP ${res.status}`);
+          if (res.status < 400) return;
+          if (res.status !== 429 && res.status < 500) throw new Error(`HTTP ${res.status}`);
+          if (attempt === 3) throw new Error(`HTTP ${res.status}`);
         } catch (e) {
-          bad++;
-          console.log(`BROKEN  ${repo}  ${url}  (${e.message})`);
+          if (attempt === 3 || /^HTTP 4/.test(e.message)) {
+            bad++;
+            console.log(`BROKEN  ${repo}  ${url}  (${e.message})`);
+            return;
+          }
         }
-      }),
-    );
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+      }
+    };
+    const queue = [...urls];
+    await Promise.all(Array.from({ length: 6 }, async () => { for (let item; (item = queue.shift()); ) await check(item); }));
     console.log(`${urls.size} URLs checked, ${bad} broken`);
     if (bad) process.exit(1);
     break;
