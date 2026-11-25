@@ -11,28 +11,20 @@ See [AGENTS.md](AGENTS.md) for architecture, security rules and conventions.
 
 ## See it in 40 seconds
 
-![SolutionHub demo: browse and create solutions in the app, connect Claude over MCP, find relevant solutions with a prompt, and publish a project from its repo](docs/media/solutionhub-demo.gif)
+[![SolutionHub tour, slide 1 of 10. Click to start.](docs/media/slides/01.png)](docs/slides/02.md)
 
-1. **The hub:** browse, search and filter solutions. Each one is a shareable card
-   with a Markdown description, resources, keywords and update history.
-2. **Create:** add a solution in the app, as public, organization or private.
-3. **Connect:** **Connect to agent** gives the MCP URL and setup steps for Claude,
-   ChatGPT, Claude Code and Codex.
-4. **Discover:** ask your agent in plain language. Claude searched SolutionHub,
-   read the best matches and summarised what to reuse:
+**[Start the tour: Next →](docs/slides/02.md)** · [Watch it as a GIF](docs/media/solutionhub-demo.gif)
 
-   > I'm about to build a tool that analyzes YouTube videos and suggests how to
-   > improve viewer retention. Search SolutionHub for existing solutions I could
-   > reuse or learn from, and summarize the top 3 with why each is relevant.
-
-5. **Publish:** hand your agent a repo and it writes and saves the card
-   (private unless you say otherwise):
-
-   > I just finished building SolutionHub, a hub where teams share projects and
-   > demos, with a remote MCP server so agents can use it. The repo is
-   > https://github.com/hrmiitm/solution-hub. Add it to SolutionHub as a private solution.
-
-Setup for each client is in [Connect an MCP client](#connect-an-mcp-client).
+1. [A hub where teams share projects, demos and solutions](docs/slides/01.md)
+2. [Every solution is a shareable card](docs/slides/02.md)
+3. [Create one in seconds](docs/slides/03.md)
+4. [Or let your AI agent do it: connect over remote MCP](docs/slides/04.md)
+5. [Ask Claude in plain language](docs/slides/05.md)
+6. [Claude searches SolutionHub through MCP](docs/slides/06.md)
+7. […and returns relevant solutions you can reuse](docs/slides/07.md)
+8. [Finished a project? Ask Claude to publish it](docs/slides/08.md)
+9. [Claude writes the card from your repo](docs/slides/09.md)
+10. [Live in your hub, private by default](docs/slides/10.md)
 
 ## How it fits together
 
