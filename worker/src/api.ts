@@ -58,7 +58,7 @@ route(
   'POST',
   '/api/auth/google',
   async ({ request, env }) => {
-    await enforceRateLimit(env.DB, `auth:${clientIp(request)}`, 60, 600);
+    await enforceRateLimit(env, `auth:${clientIp(request)}`, 60, 600);
     const body = (await readJson(request)) as { idToken?: unknown; client?: unknown };
     const client: SessionClient = body.client === 'native' ? 'native' : 'web';
     // Web logins set a cookie, so they get the same origin checks as other
@@ -107,7 +107,7 @@ route('GET', '/api/me', async ({ env, actor }) => {
 // --- MCP connector consent and management -----------------------------------
 
 route('GET', '/api/oauth/authorize', async ({ env, url, request }) => {
-  await enforceRateLimit(env.DB, `oauth-authorize:${clientIp(request)}`, 120, 600);
+  await enforceRateLimit(env, `oauth-authorize:${clientIp(request)}`, 120, 600);
   return json(describeAuthorizationRequest(await checkAuthorizationRequest(env, url)));
 }, { auth: 'none' });
 
@@ -117,7 +117,7 @@ route('POST', '/api/oauth/authorize', async ({ env, url, request }) => {
   const cookie = readCookie(request, sessionCookieName(request));
   const actor = cookie ? await resolveSession(env.DB, cookie) : null;
   if (!actor) throw new AppError('unauthorized', 'Sign in with Google to connect');
-  await enforceRateLimit(env.DB, `oauth-consent:${actor.userId}`, 60, 600);
+  await enforceRateLimit(env, `oauth-consent:${actor.userId}`, 60, 600);
   const decision = validateConsentDecision(await readJson(request));
   const authorization = await checkAuthorizationRequest(env, url);
   return json({ redirectTo: await decideAuthorization(env.DB, url, actor, authorization, decision.approve, decision.write) });
@@ -252,7 +252,7 @@ async function authenticate(request: Request, env: Env): Promise<{ actor: Actor 
 
 export async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  enforceMemoryRateLimit(`ip:${clientIp(request)}`, 1800, 60);
+  enforceMemoryRateLimit(env, `ip:${clientIp(request)}`, 1800, 60);
 
   const candidates = routes.filter((r) => r.pattern.test(url.pathname));
   if (!candidates.length) throw new AppError('not_found', 'Endpoint not found');
@@ -279,7 +279,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
         throw new AppError('forbidden', 'Cross-origin request rejected');
       }
       if (auth.viaCookie) assertCsrfSafe(request, env);
-      await enforceRateLimit(env.DB, `write:${actor.userId}`, 360, 600);
+      await enforceRateLimit(env, `write:${actor.userId}`, 360, 600);
     }
   }
 

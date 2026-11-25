@@ -257,6 +257,10 @@ Without `key.properties`, release builds fall back to the debug key.
 
 ## Rate limits
 
+Application rate limits are disabled. To restore them, set
+`RATE_LIMITS_ENABLED` to `"true"` under `vars` in
+`worker/wrangler.jsonc` and redeploy. The enabled limits are listed below.
+
 | Scope | Limit | Where |
 |---|---|---|
 | Any `/api/*` request, per client IP | 1,800 per minute, per Worker isolate (best effort) | in memory |
@@ -264,8 +268,9 @@ Without `key.properties`, release builds fall back to the debug key.
 | Writes by a signed-in user (create, edit, delete, updates, import-style POST/PATCH/DELETE) | 360 per 10 minutes, per user | D1 |
 | MCP requests, per client IP | 1,800 per minute, per Worker isolate | In memory |
 | MCP client registration, per client IP | 30 per hour | D1 |
+| MCP authorization request, per client IP | 120 per 10 minutes | D1 |
+| MCP consent, per signed-in user | 60 per 10 minutes | D1 |
 | MCP token and revocation requests, per client IP | 300 per 10 minutes combined | D1 |
-| Request body | 256 KB | Worker |
 
 Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volumetric abuse.
 
@@ -282,8 +287,6 @@ Exceeding a limit returns HTTP 429. Cloudflare's own edge protections cover volu
   time.
 - Search uses weighted SQL `instr()` matching rather than FTS5. That is fine
   for thousands of solutions; FTS5 would be the next step at larger scale.
-- Read-request rate limiting is per Worker isolate (best effort). Sign-in and
-  writes are rate-limited in D1.
 - Embeds depend on the remote host. Sites that forbid framing or cross-origin
   reads show a fallback link instead.
 - Slugs stay the same when a title changes, so shared links keep working.

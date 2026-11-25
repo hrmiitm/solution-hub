@@ -43,13 +43,14 @@ function solutionBody(origin: string, solution: solutions.Solution) {
   };
 }
 
-async function runTool(db: D1Database, principal: McpPrincipal, origin: string, name: ToolName, raw: unknown) {
+async function runTool(env: Env, principal: McpPrincipal, origin: string, name: ToolName, raw: unknown) {
+  const { DB: db } = env;
   const { actor } = principal;
   const args = toolArgs(raw, Object.keys(INPUT_SCHEMAS[name].properties));
   const find = () => solutions.resolveSolution(db, actor, parseSolutionRef(args.solution, 'solution', origin));
   if (writeTools.has(name)) {
     if (!principal.scopes.includes(SCOPE_WRITE)) throw new AppError('forbidden', 'Connector write consent is required');
-    await enforceRateLimit(db, `write:${actor.userId}`, 360, 600);
+    await enforceRateLimit(env, `write:${actor.userId}`, 360, 600);
   }
 
   switch (name) {
@@ -101,7 +102,7 @@ function toolResult(data: Record<string, unknown>, isError = false): CallToolRes
   return { content: [{ type: 'text', text: JSON.stringify(data) }], structuredContent: data, ...(isError ? { isError } : {}) };
 }
 
-function createServer(db: D1Database, principal: McpPrincipal, origin: string): Server {
+function createServer(env: Env, principal: McpPrincipal, origin: string): Server {
   const server = new Server(
     { name: 'solutionhub', title: 'SolutionHub', version: '1.0.0' },
     { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: INSTRUCTIONS },
@@ -111,7 +112,7 @@ function createServer(db: D1Database, principal: McpPrincipal, origin: string): 
   server.setRequestHandler('tools/call', async ({ params }) => {
     if (!Object.hasOwn(INPUT_SCHEMAS, params.name)) throw new ProtocolError(ProtocolErrorCode.InvalidParams, 'Unknown tool');
     try {
-      return toolResult(await runTool(db, principal, origin, params.name as ToolName, params.arguments));
+      return toolResult(await runTool(env, principal, origin, params.name as ToolName, params.arguments));
     } catch (err) {
       if (err instanceof AppError) {
         return toolResult({ error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) } }, true);
@@ -175,7 +176,7 @@ export async function handleMcp(request: Request, env: Env): Promise<Response> {
 }
 
 async function dispatchMcp(request: Request, env: Env, url: URL): Promise<Response> {
-  enforceMemoryRateLimit(`mcp-ip:${request.headers.get('cf-connecting-ip') ?? 'local'}`, 1800, 60);
+  enforceMemoryRateLimit(env, `mcp-ip:${request.headers.get('cf-connecting-ip') ?? 'local'}`, 1800, 60);
   const header = request.headers.get('authorization');
   const token = header?.match(/^Bearer +([A-Za-z0-9_-]{20,128})$/i)?.[1];
   if (!token) return challenge(url, 401, header ? 'invalid_token' : undefined);
@@ -198,6 +199,6 @@ async function dispatchMcp(request: Request, env: Env, url: URL): Promise<Respon
     }
   }
 
-  const handler = createMcpHandler(() => createServer(env.DB, principal, url.origin), { maxRequestBodySize: MAX_BODY_BYTES });
+  const handler = createMcpHandler(() => createServer(env, principal, url.origin), { maxRequestBodySize: MAX_BODY_BYTES });
   return handler.fetch(request, { parsedBody });
 }

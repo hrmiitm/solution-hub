@@ -15,7 +15,8 @@
   "vars": {
     // Extra cross-origin web origins allowed for CORS (comma-separated).
     // Same-origin requests never need this; empty means no CORS.
-    "ALLOWED_ORIGINS": ""
+    "ALLOWED_ORIGINS": "",
+    "RATE_LIMITS_ENABLED": "false"
   },
   "d1_databases": [
     {

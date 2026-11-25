@@ -1,11 +1,16 @@
+import type { Env } from '../env.ts';
 import { AppError } from './errors.ts';
+
+type RateLimitConfig = Pick<Env, 'RATE_LIMITS_ENABLED'>;
 
 /**
  * Fixed-window rate limiter backed by D1 (one upsert per checked request).
  * Used for sign-in and write operations, where a database write happens
  * anyway. Reads are limited by a cheaper per-isolate limiter below.
  */
-export async function enforceRateLimit(db: D1Database, key: string, limit: number, windowSeconds: number): Promise<void> {
+export async function enforceRateLimit(env: RateLimitConfig & Pick<Env, 'DB'>, key: string, limit: number, windowSeconds: number): Promise<void> {
+  if (env.RATE_LIMITS_ENABLED !== 'true') return;
+  const db = env.DB;
   const now = Math.floor(Date.now() / 1000);
   const windowStart = now - (now % windowSeconds);
   const row = await db
@@ -34,7 +39,8 @@ export async function enforceRateLimit(db: D1Database, key: string, limit: numbe
  */
 const buckets = new Map<string, { windowStart: number; count: number }>();
 
-export function enforceMemoryRateLimit(key: string, limit: number, windowSeconds: number): void {
+export function enforceMemoryRateLimit(env: RateLimitConfig, key: string, limit: number, windowSeconds: number): void {
+  if (env.RATE_LIMITS_ENABLED !== 'true') return;
   const now = Math.floor(Date.now() / 1000);
   const windowStart = now - (now % windowSeconds);
   const bucket = buckets.get(key);

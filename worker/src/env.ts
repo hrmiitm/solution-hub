@@ -8,6 +8,8 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   /** Extra reviewed HTTPS Client ID Metadata Document URLs for MCP OAuth. */
   OAUTH_CLIENT_METADATA_URLS?: string;
+  /** Set to "true" to enable application rate limits. */
+  RATE_LIMITS_ENABLED?: string;
 }
 
 /**

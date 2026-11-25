@@ -212,7 +212,7 @@ async function authenticateClient(request: Request, db: D1Database, params: Map<
 }
 
 async function register(request: Request, env: Env): Promise<Response> {
-  await enforceRateLimit(env.DB, `oauth-register:${clientIp(request)}`, 30, 3600);
+  await enforceRateLimit(env, `oauth-register:${clientIp(request)}`, 30, 3600);
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? '')) {
     throw new OAuthError('invalid_client_metadata', 'Content-Type must be application/json');
   }
@@ -249,7 +249,7 @@ async function register(request: Request, env: Env): Promise<Response> {
 }
 
 async function token(request: Request, env: Env, url: URL): Promise<Response> {
-  await enforceRateLimit(env.DB, `oauth-token:${clientIp(request)}`, 300, 600);
+  await enforceRateLimit(env, `oauth-token:${clientIp(request)}`, 300, 600);
   const params = await readParams(request);
   const client = await authenticateClient(request, env.DB, params);
   const resource = canonicalResource(url, params.get('resource') ?? null);
@@ -276,7 +276,7 @@ async function token(request: Request, env: Env, url: URL): Promise<Response> {
 }
 
 async function revoke(request: Request, env: Env, url: URL): Promise<Response> {
-  await enforceRateLimit(env.DB, `oauth-token:${clientIp(request)}`, 300, 600);
+  await enforceRateLimit(env, `oauth-token:${clientIp(request)}`, 300, 600);
   const params = await readParams(request);
   const token = params.get('token');
   if (!token) throw new OAuthError('invalid_request', 'token is required');
