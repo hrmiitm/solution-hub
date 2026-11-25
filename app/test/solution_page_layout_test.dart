@@ -97,7 +97,7 @@ Finder _panel(Finder child) =>
     find.ancestor(of: child, matching: find.byType(Panel)).first;
 
 void main() {
-  testWidgets('desktop places resources and details in the sidebar', (
+  testWidgets('desktop places details beside preview and stacks other panels', (
     tester,
   ) async {
     await _showSolution(
@@ -112,18 +112,20 @@ void main() {
     final details = tester.getRect(_panel(find.text('Details')));
     final history = tester.getRect(_panel(find.text('Update history')));
 
-    expect(resources.top, preview.top);
-    expect(resources.left, greaterThan(preview.right));
-    expect(description.left, preview.left);
-    expect(description.right, resources.right);
+    expect(details.top, preview.top);
+    expect(details.left, greaterThan(preview.right));
     expect(description.top, greaterThan(preview.bottom));
-    expect(description.top, greaterThan(resources.bottom));
-    expect(history.top, greaterThan(description.bottom));
-    expect(details.top, history.top);
-    expect(details.left, greaterThan(history.right));
-    expect(details.left, resources.left);
+    expect(description.top, greaterThan(details.bottom));
+    expect(resources.top, greaterThan(description.bottom));
+    expect(history.top, greaterThan(resources.bottom));
+    for (final section in [description, resources, history]) {
+      expect(section.left, preview.left);
+      expect(section.right, details.right);
+    }
 
     final previewButton = find.byTooltip('Preview Architecture diagram');
+    await tester.ensureVisible(previewButton);
+    await tester.pumpAndSettle();
     await tester.tap(previewButton);
     await tester.pumpAndSettle();
     expect(find.byType(ResourcePreview), findsNWidgets(2));
@@ -132,36 +134,39 @@ void main() {
     expect(find.byType(ResourcePreview), findsOneWidget);
   });
 
-  testWidgets('phone stacks preview, resources, description and history', (
-    tester,
-  ) async {
-    await _showSolution(tester, width: 360, resources: _resources);
-    final sections = [
-      find.byType(ResourcePreview),
-      for (final title in [
-        'Resources',
-        'Description',
-        'Details',
-        'Update history',
-      ])
-        find.text(title),
-    ].map((finder) => tester.getRect(_panel(finder))).toList();
-    for (var index = 1; index < sections.length; index++) {
-      expect(sections[index].left, sections.first.left);
-      expect(sections[index].right, sections.first.right);
-      expect(sections[index].top, greaterThan(sections[index - 1].bottom));
-    }
-  });
+  testWidgets(
+    'phone stacks preview, details, description, resources and history',
+    (tester) async {
+      await _showSolution(tester, width: 360, resources: _resources);
+      final sections = [
+        find.byType(ResourcePreview),
+        for (final title in [
+          'Details',
+          'Description',
+          'Resources',
+          'Update history',
+        ])
+          find.text(title),
+      ].map((finder) => tester.getRect(_panel(finder))).toList();
+      for (var index = 1; index < sections.length; index++) {
+        expect(sections[index].left, sections.first.left);
+        expect(sections[index].right, sections.first.right);
+        expect(sections[index].top, greaterThan(sections[index - 1].bottom));
+      }
+    },
+  );
 
-  testWidgets('link-only solutions use the full width for resources', (
+  testWidgets('link-only solutions use the full width for details', (
     tester,
   ) async {
     await _showSolution(tester, width: 1280, resources: [_resources.first]);
     expect(find.byType(ResourcePreview), findsNothing);
     final resources = tester.getRect(_panel(find.text('Resources')));
     final description = tester.getRect(_panel(find.text('Description')));
-    expect(resources.left, description.left);
-    expect(resources.right, description.right);
-    expect(resources.bottom, lessThan(description.top));
+    final details = tester.getRect(_panel(find.text('Details')));
+    expect(details.left, description.left);
+    expect(details.right, description.right);
+    expect(details.bottom, lessThan(description.top));
+    expect(description.bottom, lessThan(resources.top));
   });
 }

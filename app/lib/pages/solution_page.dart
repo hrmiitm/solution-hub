@@ -206,6 +206,15 @@ class _SolutionPageState extends State<SolutionPage> {
       null => null,
     };
     final resources = s.resources.isEmpty ? null : _ResourcesPanel(solution: s);
+    final description = Panel(
+      title: 'Description',
+      child: (s.descriptionMd ?? '').trim().isEmpty
+          ? Text(
+              'No description.',
+              style: TextStyle(color: context.colors.muted),
+            )
+          : MarkdownView(s.descriptionMd!),
+    );
     final details = _DetailsPanel(solution: s);
     final history = _HistoryPanel(
       key: _historyKey,
@@ -228,33 +237,18 @@ class _SolutionPageState extends State<SolutionPage> {
         maxWidth: 1200,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 14,
           children: [
             _header(s),
-            const SizedBox(height: 14),
-            if (wide && preview != null && resources != null) ...[
-              _withSidebar(preview, resources),
-              const SizedBox(height: 14),
-            ] else ...[
-              if (preview != null) ...[preview, const SizedBox(height: 14)],
-              if (resources != null) ...[resources, const SizedBox(height: 14)],
-            ],
-            Panel(
-              title: 'Description',
-              child: (s.descriptionMd ?? '').trim().isEmpty
-                  ? Text(
-                      'No description.',
-                      style: TextStyle(color: context.colors.muted),
-                    )
-                  : MarkdownView(s.descriptionMd!),
-            ),
-            const SizedBox(height: 14),
-            if (wide)
-              _withSidebar(history, details)
+            if (wide && preview != null)
+              _withSidebar(preview, details)
             else ...[
+              ?preview,
               details,
-              const SizedBox(height: 14),
-              history,
             ],
+            description,
+            ?resources,
+            history,
           ],
         ),
       ),
@@ -288,6 +282,17 @@ class _SolutionPageState extends State<SolutionPage> {
         ],
       ),
     );
+    const description = Panel(child: SkeletonLines());
+    const details = Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 10,
+        children: [
+          SkeletonBlock(height: 17, width: 70),
+          SkeletonLines(widths: [0.42, 0.65, 0.54]),
+        ],
+      ),
+    );
     return LoadingView(
       child: SingleChildScrollView(
         child: PageBody(
@@ -309,11 +314,13 @@ class _SolutionPageState extends State<SolutionPage> {
                 ),
               ),
               if (wide)
-                _withSidebar(preview, resources)
+                _withSidebar(preview, details)
               else ...[
                 preview,
-                resources,
+                details,
               ],
+              description,
+              resources,
               const Panel(child: SkeletonLines()),
             ],
           ),
