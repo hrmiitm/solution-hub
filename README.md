@@ -1,5 +1,7 @@
 # SolutionHub
 
+**🌐 [Open the live app: solutionhub-hrm.pages.dev](https://solutionhub-hrm.pages.dev)** · [▶ Watch the demo](#see-it-in-40-seconds) · [Connect your agent](#connect-an-mcp-client)
+
 ![SolutionHub architecture: web, Android and MCP clients go through one Worker with shared security, business logic and D1, and Claude uses it over MCP](docs/media/solutionhub-architecture.png)
 
 A GitHub-style hub to create, track, showcase and discover projects, demos and
